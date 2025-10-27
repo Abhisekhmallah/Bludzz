@@ -173,7 +173,7 @@ const Navbar = () => {
             {/* Drawer Navigation Links */}
             <ul className="flex flex-col gap-3 text-base font-medium text-gray-800">
               <NavLink to="/" onClick={() => setDrawerOpen(false)}>Home</NavLink>
-              <NavLink to="/doctors" onClick={() => setDrawerOpen(false)}>All Doctors</NavLink>
+              <NavLink to="/doctors" onClick={() => setDrawerOpen(false)}>All Labs</NavLink>
               
               <NavLink to="/about" onClick={() => setDrawerOpen(false)}>About</NavLink>
               <NavLink to="/contact" onClick={() => setDrawerOpen(false)}>Contact</NavLink>
@@ -181,7 +181,7 @@ const Navbar = () => {
                 <>
                   <NavLink to="/my-profile" onClick={() => setDrawerOpen(false)}>My Profile</NavLink>
                   <NavLink to="/my-appointments" onClick={() => setDrawerOpen(false)}>My Appointments</NavLink>
-                  <NavLink to="/labs" onClick={() => setDrawerOpen(false)}>Labs</NavLink>
+                  
 
                   <p onClick={() => { logout(); setDrawerOpen(false); }} className="cursor-pointer text-red-500 mt-2">Logout</p>
                 </>

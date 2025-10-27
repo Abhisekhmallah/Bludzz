@@ -1,7 +1,9 @@
 import labModel from "../models/labModel.js";
 import { v2 as cloudinary } from "cloudinary";
 
-// Admin: add lab (multipart form-data image upload handled by multer upload middleware)
+// ------------------------------
+// Admin: Add new lab
+// ------------------------------
 export const addLab = async (req, res) => {
   try {
     const {
@@ -16,14 +18,16 @@ export const addLab = async (req, res) => {
     } = req.body;
 
     let imageUrl = "";
+
+    // ✅ Upload image to Cloudinary if file is provided
     if (req.file) {
-      // upload to cloudinary if configured
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "labs",
       });
       imageUrl = result.secure_url;
     }
 
+    // ✅ Create new lab (available by default)
     const lab = await labModel.create({
       name,
       email,
@@ -32,8 +36,9 @@ export const addLab = async (req, res) => {
       city,
       phone,
       about,
-      services: services ? services.split(",").map(s => s.trim()) : [],
+      services: services ? services.split(",").map((s) => s.trim()) : [],
       fees,
+      available: true, // ✅ Fix: make newly added lab visible on frontend
     });
 
     res.status(201).send({ success: true, message: "Lab added", lab });
@@ -43,7 +48,9 @@ export const addLab = async (req, res) => {
   }
 };
 
-// Admin: get all labs (protected)
+// ------------------------------
+// Admin: Get all labs
+// ------------------------------
 export const allLabs = async (req, res) => {
   try {
     const labs = await labModel.find().sort({ createdAt: -1 });
@@ -53,7 +60,9 @@ export const allLabs = async (req, res) => {
   }
 };
 
-// Public: list labs (for frontend)
+// ------------------------------
+// Public: List labs (visible in frontend)
+// ------------------------------
 export const publicLabsList = async (req, res) => {
   try {
     const labs = await labModel.find({ available: true }).sort({ createdAt: -1 });
@@ -63,26 +72,34 @@ export const publicLabsList = async (req, res) => {
   }
 };
 
-// Public: get single lab profile
+// ------------------------------
+// Public: Single lab details (lab profile)
+// ------------------------------
 export const labProfile = async (req, res) => {
   try {
     const { id } = req.params;
     const lab = await labModel.findById(id);
-    if (!lab) return res.status(404).send({ success: false, message: "Lab not found" });
+    if (!lab)
+      return res.status(404).send({ success: false, message: "Lab not found" });
     res.send({ success: true, lab });
   } catch (error) {
     res.status(500).send({ success: false, message: error.message });
   }
 };
 
-// Admin: change availability (toggle) (protected)
+// ------------------------------
+// Admin: Toggle lab availability
+// ------------------------------
 export const changeLabAvailability = async (req, res) => {
   try {
     const { id } = req.body;
     const lab = await labModel.findById(id);
-    if (!lab) return res.status(404).send({ success: false, message: "Lab not found" });
+    if (!lab)
+      return res.status(404).send({ success: false, message: "Lab not found" });
+
     lab.available = !lab.available;
     await lab.save();
+
     res.send({ success: true, message: "Availability updated" });
   } catch (error) {
     res.status(500).send({ success: false, message: error.message });

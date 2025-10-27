@@ -50,7 +50,7 @@ const Sidebar = () => {
             }
           >
             <img className='min-w-5' src={assets.add_icon} alt='' />
-            <p className='hidden md:block'>Add Doctor</p>
+            <p className='hidden md:block'>Add Lab</p>
           </NavLink>
 
           {/* Doctors List */}
@@ -63,7 +63,7 @@ const Sidebar = () => {
             }
           >
             <img className='min-w-5' src={assets.people_icon} alt='' />
-            <p className='hidden md:block'>Doctors List</p>
+            <p className='hidden md:block'>Labs List</p>
           </NavLink>
 
           {/* 🆕 Add Lab */}
@@ -75,22 +75,9 @@ const Sidebar = () => {
               }`
             }
           >
-            <img className='min-w-5' src={assets.add_icon} alt='' />
-            <p className='hidden md:block'>Add Lab</p>
           </NavLink>
 
-          {/* 🆕 Labs List */}
-          <NavLink
-            to={'/admin/labs-list'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''
-              }`
-            }
-          >
-            <img className='min-w-5' src={assets.people_icon} alt='' />
-            <p className='hidden md:block'>Labs List</p>
-          </NavLink>
+          
 
         </ul>
       )}
