@@ -62,7 +62,7 @@ const addDoctor = async (req, res) => {
 
     try {
 
-        const { name, email, password, speciality, degree, experience, about, fees, address } = req.body
+        const { name, email, password, speciality, degree, experience, about, fees, address, services } = req.body
         const imageFile = req.file
 
         // checking for all data to add doctor
@@ -87,6 +87,7 @@ const addDoctor = async (req, res) => {
         // upload image to cloudinary
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
         const imageUrl = imageUpload.secure_url
+        const servicesParsed = services ? JSON.parse(services) : []
 
         const doctorData = {
             name,
@@ -99,6 +100,7 @@ const addDoctor = async (req, res) => {
             about,
             fees,
             address: JSON.parse(address),
+            services: servicesParsed,
             date: Date.now()
         }
 
