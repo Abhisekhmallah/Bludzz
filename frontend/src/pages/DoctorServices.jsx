@@ -19,6 +19,7 @@ const DoctorServices = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white rounded-2xl shadow-md mt-6">
+
       {/* Doctor Header */}
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <img
@@ -26,11 +27,31 @@ const DoctorServices = () => {
           alt={doctor.name}
           className="w-40 h-40 object-cover rounded-xl bg-gray-100"
         />
-        <div>
+
+        <div className="flex-1 relative">
+
           <h2 className="text-2xl font-bold text-gray-800">{doctor.name}</h2>
           <p className="text-gray-600">{doctor.degree} - {doctor.speciality}</p>
           <p className="text-sm text-gray-500 mt-1">Experience: {doctor.experience}</p>
           <p className="text-sm text-gray-500 mt-1">{doctor.about}</p>
+
+          {/* PHONE ICON BUTTON */}
+          {doctor.phone && (
+            <a
+              href={`tel:${doctor.phone}`}
+              className="absolute right-0 top-0 inline-flex items-center gap-2 px-3 py-2 rounded bg-white border hover:shadow"
+              title={`Call ${doctor.name}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                  d="M3 5.5A2.5 2.5 0 015.5 3h1A2.5 2.5 0 019 5.5v1A2.5 2.5 0 016.5 9H6a12 12 0 0012 12v-.5A2.5 2.5 0 0019.5 18h-1A2.5 2.5 0 0016 20.5v.5" />
+              </svg>
+
+              <span className="hidden sm:inline text-sm">Call</span>
+              <span className="text-sm font-medium ml-1">{doctor.phone}</span>
+            </a>
+          )}
+
         </div>
       </div>
 
@@ -55,7 +76,9 @@ const DoctorServices = () => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No specific services available. You can book a general appointment.</p>
+          <p className="text-gray-500">
+            No specific services available. You can book a general appointment.
+          </p>
         )}
       </div>
     </div>

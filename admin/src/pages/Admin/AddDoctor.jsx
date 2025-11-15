@@ -18,25 +18,21 @@ const AddDoctor = () => {
     const [degree, setDegree] = useState('')
     const [address1, setAddress1] = useState('')
     const [address2, setAddress2] = useState('')
+    const [phone, setPhone] = useState('') // <-- new
 
-    // ✅ New: Doctor Services (dynamic list)
+    // Services state remains as before
     const [services, setServices] = useState([{ name: '', description: '', fee: '' }])
 
     const { backendUrl } = useContext(AppContext)
     const { aToken } = useContext(AdminContext)
 
-    // ✅ Add new service row
     const addService = () => {
         setServices([...services, { name: '', description: '', fee: '' }])
     }
-
-    // ✅ Remove a service row
     const removeService = (index) => {
         const updated = services.filter((_, i) => i !== index)
         setServices(updated)
     }
-
-    // ✅ Handle input changes for service fields
     const handleServiceChange = (index, field, value) => {
         const newServices = [...services]
         newServices[index][field] = value
@@ -45,14 +41,11 @@ const AddDoctor = () => {
 
     const onSubmitHandler = async (event) => {
         event.preventDefault()
-
         try {
             if (!docImg) {
                 return toast.error('Image Not Selected')
             }
-
             const formData = new FormData();
-
             formData.append('image', docImg)
             formData.append('name', name)
             formData.append('email', email)
@@ -63,33 +56,22 @@ const AddDoctor = () => {
             formData.append('speciality', speciality)
             formData.append('degree', degree)
             formData.append('address', JSON.stringify({ line1: address1, line2: address2 }))
-
-            // ✅ Append services to backend
             formData.append('services', JSON.stringify(services))
+            formData.append('phone', phone) // <-- append phone
 
             // Debug log
-            formData.forEach((value, key) => {
-                console.log(`${key}: ${value}`);
-            });
+            // formData.forEach((value, key) => console.log(`${key}: ${value}`));
 
             const { data } = await axios.post(backendUrl + '/api/admin/add-doctor', formData, { headers: { aToken } })
             if (data.success) {
                 toast.success(data.message)
-                // Reset form
+                // reset
                 setDocImg(false)
-                setName('')
-                setPassword('')
-                setEmail('')
-                setAddress1('')
-                setAddress2('')
-                setDegree('')
-                setAbout('')
-                setFees('')
-                setServices([{ name: '', description: '', fee: '' }])
+                setName(''); setPassword(''); setEmail(''); setAddress1(''); setAddress2('')
+                setDegree(''); setAbout(''); setFees(''); setPhone(''); setServices([{ name: '', description: '', fee: '' }])
             } else {
                 toast.error(data.message)
             }
-
         } catch (error) {
             toast.error(error.message)
             console.log(error)
@@ -99,9 +81,7 @@ const AddDoctor = () => {
     return (
         <form onSubmit={onSubmitHandler} className='m-5 w-full'>
             <p className='mb-3 text-lg font-medium'>Add Doctor</p>
-
             <div className='bg-white px-8 py-8 border rounded w-full max-w-4xl max-h-[80vh] overflow-y-scroll'>
-                {/* Upload Image */}
                 <div className='flex items-center gap-4 mb-8 text-gray-500'>
                     <label htmlFor="doc-img">
                         <img className='w-16 bg-gray-100 rounded-full cursor-pointer' src={docImg ? URL.createObjectURL(docImg) : assets.upload_area} alt="" />
@@ -111,7 +91,6 @@ const AddDoctor = () => {
                 </div>
 
                 <div className='flex flex-col lg:flex-row items-start gap-10 text-gray-600'>
-                    {/* Left column */}
                     <div className='w-full lg:flex-1 flex flex-col gap-4'>
                         <div className='flex-1 flex flex-col gap-1'>
                             <p>Your name</p>
@@ -149,7 +128,6 @@ const AddDoctor = () => {
                         </div>
                     </div>
 
-                    {/* Right column */}
                     <div className='w-full lg:flex-1 flex flex-col gap-4'>
                         <div className='flex-1 flex flex-col gap-1'>
                             <p>Speciality</p>
@@ -173,16 +151,20 @@ const AddDoctor = () => {
                             <input onChange={e => setAddress1(e.target.value)} value={address1} className='border rounded px-3 py-2' type="text" placeholder='Address 1' required />
                             <input onChange={e => setAddress2(e.target.value)} value={address2} className='border rounded px-3 py-2' type="text" placeholder='Address 2' required />
                         </div>
+
+                        <div className='flex-1 flex flex-col gap-1'>
+                            <p>Phone (include country code, e.g. +91XXXXXXXXXX)</p>
+                            <input onChange={e => setPhone(e.target.value)} value={phone} className='border rounded px-3 py-2' type="tel" placeholder='+91...' />
+                        </div>
                     </div>
                 </div>
 
-                {/* About Section */}
                 <div>
                     <p className='mt-4 mb-2'>About Doctor</p>
                     <textarea onChange={e => setAbout(e.target.value)} value={about} className='w-full px-4 pt-2 border rounded' rows={5} placeholder='Write about doctor'></textarea>
                 </div>
 
-                {/* ✅ New Doctor Services Section */}
+                {/* Services Section (same as before) */}
                 <div className='mt-6'>
                     <p className='text-lg font-medium mb-3'>Doctor Services</p>
 
@@ -233,7 +215,6 @@ const AddDoctor = () => {
                     </button>
                 </div>
 
-                {/* Submit Button */}
                 <button type='submit' className='bg-primary px-10 py-3 mt-6 text-white rounded-full'>
                     Add Doctor
                 </button>
