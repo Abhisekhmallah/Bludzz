@@ -38,7 +38,9 @@ const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
+
       <div className="flex items-center justify-between px-4 py-3 sm:px-6 md:px-10">
+
         {/* Left Section: Logo + Location */}
         <div className="flex items-center gap-4 flex-shrink-0">
           <img
@@ -48,13 +50,15 @@ const Navbar = () => {
             onClick={() => navigate("/")}
           />
 
-          {/* Location Selector - hide on very small screens */}
+          {/* Location Selector */}
           <div
             onClick={() => setShowLocationModal(true)}
             className="hidden sm:flex items-center gap-1 text-sm text-gray-700 cursor-pointer hover:text-primary"
           >
             <img src={assets.location_icon} alt="Location" className="w-4 h-4" />
-            <span className="truncate max-w-[100px]">{location || "Select location"}</span>
+            <span className="truncate max-w-[100px]">
+              {location || "Select location"}
+            </span>
             <img src={assets.dropdown_icon} alt="Dropdown" className="w-3" />
           </div>
         </div>
@@ -64,11 +68,7 @@ const Navbar = () => {
           onSubmit={handleSearch}
           className="hidden lg:flex items-center bg-gray-100 px-3 py-2 rounded-md w-full max-w-md mx-6"
         >
-          <img
-            src={assets.search_icon}
-            alt="search"
-            className="w-4 h-4 mr-2 opacity-60"
-          />
+          <img src={assets.search_icon} alt="search" className="w-4 h-4 mr-2 opacity-60" />
           <input
             type="text"
             placeholder="Search doctors or lab tests"
@@ -78,10 +78,20 @@ const Navbar = () => {
           />
         </form>
 
-        {/* Right Section: User + Hamburger */}
+        {/* Right Section */}
         <div className="flex items-center gap-4">
-          {/* Desktop User Menu */}
-          <div className="hidden md:flex items-center gap-4">
+
+          {/* DESKTOP: User Menu + REGISTER DOCTOR */}
+          <div className="hidden md:flex items-center gap-6">
+
+            {/* NEW BUTTON — REGISTER DOCTOR */}
+            <NavLink
+              to="/register-doctor"
+              className="text-primary font-semibold hover:underline"
+            >
+              Register as Doctor
+            </NavLink>
+
             {token && userData ? (
               <div className="relative group cursor-pointer flex items-center gap-2">
                 <img
@@ -90,6 +100,7 @@ const Navbar = () => {
                   alt="User"
                 />
                 <img className="w-3" src={assets.dropdown_icon} alt="dropdown" />
+
                 <div className="absolute top-12 right-0 z-30 hidden group-hover:block bg-white shadow-lg rounded-md text-sm min-w-[160px] p-4">
                   <p onClick={() => navigate("/my-profile")} className="cursor-pointer hover:text-primary mb-2">My Profile</p>
                   <p onClick={() => navigate("/my-appointments")} className="cursor-pointer hover:text-primary mb-2">My Appointments</p>
@@ -106,7 +117,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Hamburger (always visible) */}
+          {/* Hamburger Icon */}
           <img
             onClick={() => setDrawerOpen(true)}
             className="w-6 cursor-pointer block"
@@ -116,17 +127,23 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Drawer Backdrop & Panel */}
+      {/* Drawer Backdrop */}
       <div
-        className={`fixed inset-0 z-50 bg-black bg-opacity-40 transition-opacity duration-300 ease-in-out ${drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-50 bg-black bg-opacity-40 transition-opacity duration-300 ease-in-out ${
+          drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
         onClick={() => setDrawerOpen(false)}
       >
+        {/* Drawer Panel */}
         <div
           ref={drawerRef}
-          className={`fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
+          className={`fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+            drawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-5 flex flex-col h-full">
+
             {/* Drawer Header */}
             <div className="flex justify-between items-center mb-4">
               <img src={assets.logo} className="w-28" alt="Logo" />
@@ -156,11 +173,7 @@ const Navbar = () => {
               onSubmit={handleSearch}
               className="flex items-center bg-gray-100 px-3 py-2 rounded-md mb-4"
             >
-              <img
-                src={assets.search_icon}
-                className="w-4 h-4 mr-2 opacity-60"
-                alt="Search"
-              />
+              <img src={assets.search_icon} className="w-4 h-4 mr-2 opacity-60" alt="Search" />
               <input
                 type="text"
                 placeholder="Search doctors or lab tests"
@@ -170,20 +183,35 @@ const Navbar = () => {
               />
             </form>
 
-            {/* Drawer Navigation Links */}
+            {/* Drawer Links */}
             <ul className="flex flex-col gap-3 text-base font-medium text-gray-800">
+
               <NavLink to="/" onClick={() => setDrawerOpen(false)}>Home</NavLink>
               <NavLink to="/doctors" onClick={() => setDrawerOpen(false)}>All Labs</NavLink>
-              
+
+              {/* NEW DRAWER LINK — REGISTER DOCTOR */}
+              <NavLink
+                to="/register-doctor"
+                onClick={() => setDrawerOpen(false)}
+                className="text-primary"
+              >
+                Register as Lab
+              </NavLink>
+
               <NavLink to="/about" onClick={() => setDrawerOpen(false)}>About</NavLink>
               <NavLink to="/contact" onClick={() => setDrawerOpen(false)}>Contact</NavLink>
+
               {token && (
                 <>
                   <NavLink to="/my-profile" onClick={() => setDrawerOpen(false)}>My Profile</NavLink>
                   <NavLink to="/my-appointments" onClick={() => setDrawerOpen(false)}>My Appointments</NavLink>
-                  
 
-                  <p onClick={() => { logout(); setDrawerOpen(false); }} className="cursor-pointer text-red-500 mt-2">Logout</p>
+                  <p
+                    onClick={() => { logout(); setDrawerOpen(false); }}
+                    className="cursor-pointer text-red-500 mt-2"
+                  >
+                    Logout
+                  </p>
                 </>
               )}
             </ul>

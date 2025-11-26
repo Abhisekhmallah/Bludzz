@@ -15,6 +15,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import Verify from './pages/Verify'
 import SearchResults from "./pages/SearchResults"
 import DoctorServices from './pages/DoctorServices'
+import DoctorRegistration from "./pages/DoctorRegistration";
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/search" element={<SearchResults />} />
+        <Route path="/register-doctor" element={<DoctorRegistration />} />
 
         {/* Doctor & Appointment Flow */}
         <Route path="/doctors" element={<Doctors />} />
