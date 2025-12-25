@@ -12,8 +12,6 @@ export default function DoctorRegistration() {
     experienceYears: ""
   });
 
-  const [file, setFile] = useState(null);
-
   const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 
   function handleChange(e) {
@@ -22,14 +20,20 @@ export default function DoctorRegistration() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const data = new FormData();
-
-    Object.entries(form).forEach(([key, value]) => data.append(key, value));
-    if (file) data.append("document", file);
 
     try {
-      await axios.post(`${API_BASE}/api/register-doctor`, data);
+      await axios.post(
+        `${API_BASE}/api/doctor/register-doctor`,
+        form,
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
       toast.success("Doctor registration submitted!");
+
       setForm({
         name: "",
         email: "",
@@ -38,9 +42,12 @@ export default function DoctorRegistration() {
         clinicAddress: "",
         experienceYears: ""
       });
-      setFile(null);
-    } catch (err) {
-      console.error(err);
+
+    } catch (error) {
+      console.error(
+        "Doctor registration failed:",
+        error.response?.data || error.message
+      );
       toast.error("Failed to submit form");
     }
   }
@@ -53,7 +60,7 @@ export default function DoctorRegistration() {
 
         <div>
           <label className="font-medium">Full Name</label>
-          <input 
+          <input
             name="name"
             required
             className="w-full border p-2 rounded mt-1"
@@ -106,7 +113,7 @@ export default function DoctorRegistration() {
             className="w-full border p-2 rounded mt-1"
             value={form.clinicAddress}
             onChange={handleChange}
-          ></textarea>
+          />
         </div>
 
         <div>
@@ -114,22 +121,17 @@ export default function DoctorRegistration() {
           <input
             type="number"
             name="experienceYears"
+            required
             className="w-full border p-2 rounded mt-1"
             value={form.experienceYears}
             onChange={handleChange}
           />
         </div>
 
-        <div>
-          <label>Upload Certificate (Optional)</label>
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-        </div>
-
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
           Submit
         </button>
 

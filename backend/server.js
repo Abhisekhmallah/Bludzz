@@ -1,41 +1,64 @@
-import express from "express"
-import cors from 'cors'
-import 'dotenv/config'
-import connectDB from "./config/mongodb.js"
-import connectCloudinary from "./config/cloudinary.js"
-import userRouter from "./routes/userRoute.js"
-import doctorRouter from "./routes/doctorRoute.js"
-import adminRouter from "./routes/adminRoute.js"
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
+
+import connectDB from "./config/mongodb.js";
+import connectCloudinary from "./config/cloudinary.js";
+
+import userRouter from "./routes/userRoute.js";
+import doctorRoutes from "./routes/doctorRoutes.js";
+import adminRouter from "./routes/adminRoute.js";
 import labRoute from "./routes/labRoute.js";
 
+// =========================
+// APP SETUP
+// =========================
+const app = express();
+const port = process.env.PORT || 4000;
 
+// =========================
+// DATABASE & SERVICES
+// =========================
+connectDB();
+connectCloudinary();
 
-// app config
-const app = express()
-const port = process.env.PORT || 4000
-connectDB()
-connectCloudinary()
+// =========================
+// MIDDLEWARES
+// =========================
+app.use(express.json());
+app.use(
+  cors({
+    origin: true,
+    credentials: true
+  })
+);
 
-// middlewares
-app.use(express.json())
-app.use(cors())
-
-// api endpoints
-app.use("/api/user", userRouter)
-app.use("/api/admin", adminRouter)
-app.use("/api/doctor", doctorRouter)
+// =========================
+// API ROUTES
+// =========================
+app.use("/api/user", userRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/doctor", doctorRoutes); // 🔑 includes /register-doctor
 app.use("/api", labRoute);
 
-
-
+// =========================
+// ROOT HEALTH CHECK
+// =========================
 app.get("/", (req, res) => {
-  res.send("API Working")
+  res.send("API Working");
 });
 
-app.listen(port, () => console.log(`Server started on PORT:${port}`))
-
-// Debug unknown routes
+// =========================
+// 404 HANDLER (ALWAYS LAST)
+// =========================
 app.use("*", (req, res) => {
-  console.log("❌ Unknown route hit:", req.originalUrl);
-  res.status(404).json({ message: "Route not found" });
+  console.log("❌ Unknown route hit:", req.method, req.originalUrl);
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// =========================
+// START SERVER
+// =========================
+app.listen(port, () => {
+  console.log(`🚀 Server started on PORT: ${port}`);
 });

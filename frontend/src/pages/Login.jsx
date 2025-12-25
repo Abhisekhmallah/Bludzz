@@ -24,6 +24,8 @@ const Login = () => {
   const navigate = useNavigate()
   const { backendUrl, token, setToken } = useContext(AppContext)
 
+  // ---------------------- LOGIC (UNTOUCHED) ----------------------
+
   const onSubmitHandler = async (event) => {
     event.preventDefault()
     setIsLoading(true)
@@ -45,9 +47,7 @@ const Login = () => {
           setOtpSent(true)
           setTimer(60)
           setCanResend(false)
-        } else {
-          toast.error(data.message)
-        }
+        } else toast.error(data.message)
       } else {
         const { data } = await axios.post(backendUrl + "/api/user/send-otp", {
           email,
@@ -63,9 +63,7 @@ const Login = () => {
           setOtpSent(true)
           setTimer(60)
           setCanResend(false)
-        } else {
-          toast.error(data.message)
-        }
+        } else toast.error(data.message)
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong")
@@ -90,9 +88,7 @@ const Login = () => {
         localStorage.setItem("token", data.token)
         setToken(data.token)
         setShowOTP(false)
-      } else {
-        toast.error(data.message)
-      }
+      } else toast.error(data.message)
     } catch (error) {
       toast.error(error.response?.data?.message || "OTP verification failed")
     } finally {
@@ -111,9 +107,7 @@ const Login = () => {
         setTimer(60)
         setCanResend(false)
         setOtp("")
-      } else {
-        toast.error(data.message)
-      }
+      } else toast.error(data.message)
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to resend OTP")
     }
@@ -137,150 +131,161 @@ const Login = () => {
 
   useEffect(() => {
     if (timer > 0 && showOTP) {
-      const interval = setInterval(() => {
-        setTimer(timer - 1)
-      }, 1000)
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000)
       return () => clearInterval(interval)
-    } else if (timer === 0) {
-      setCanResend(true)
-    }
+    } else if (timer === 0) setCanResend(true)
   }, [timer, showOTP])
 
   useEffect(() => {
-    if (token) {
-      navigate("/")
-    }
+    if (token) navigate("/")
   }, [token])
 
-  // OTP Verification Screen
+  // ---------------------- OTP UI ----------------------
+
   if (showOTP) {
     return (
-      <form onSubmit={handleOTPVerification} className="min-h-[80vh] flex items-center">
-        <div className="flex flex-col gap-4 m-auto items-center p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Verify Your Email</h2>
-            <p className="text-gray-600 mb-2">We've sent a 6-digit verification code to</p>
-            <p className="font-medium text-primary mb-6">{currentEmail}</p>
+      <div className="min-h-screen flex justify-center pt-6 px-4 bg-[#f4f4ff]">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+
+          <div className="w-full h-28 rounded-2xl bg-gradient-to-r from-[#726bff] to-[#9e96ff] flex justify-center items-center">
+            <span className="text-4xl text-white">💜</span>
           </div>
 
-          <div className="w-full">
-            <p className="mb-2">Enter OTP</p>
+          <h2 className="text-2xl font-bold text-center mt-6">Verify Email</h2>
+          <p className="text-gray-600 text-center mb-1">Enter the 6-digit OTP sent to</p>
+          <p className="text-primary text-center font-medium mb-5">{currentEmail}</p>
+
+          <form onSubmit={handleOTPVerification} className="mt-4">
+            <label className="font-semibold text-sm">OTP</label>
             <input
-              onChange={(e) => setOtp(e.target.value)}
-              value={otp}
-              className="border border-[#DADADA] rounded w-full p-3 mt-1 text-center text-lg tracking-widest"
-              type="text"
-              placeholder="000000"
+              className="w-full mt-1 p-3 border rounded-xl text-center tracking-widest text-xl outline-none border-gray-300"
               maxLength="6"
+              placeholder="000000"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
               required
-              disabled={isLoading}
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={otp.length !== 6 || isLoading}
-            className="bg-primary text-white w-full py-3 rounded-md text-base font-medium disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
-          >
-            {isLoading ? "Verifying..." : "Verify OTP"}
-          </button>
+            <button
+              className="w-full mt-5 py-3 bg-gradient-to-r from-[#6b63ff] to-[#9b92ff] text-white rounded-xl font-semibold"
+              disabled={otp.length !== 6 || isLoading}
+            >
+              {isLoading ? "Verifying..." : "Verify OTP"}
+            </button>
+          </form>
 
-          <div className="text-center">
-            <p className="text-gray-600 mb-2">Didn't receive the code?</p>
+          <div className="text-center mt-5">
+            <p className="text-gray-600">Didn't receive the code?</p>
+
             {canResend ? (
-              <button type="button" onClick={handleResendOTP} className="text-primary font-medium hover:underline">
+              <button onClick={handleResendOTP} className="text-[#6b63ff] font-semibold underline">
                 Resend OTP
               </button>
             ) : (
-              <p className="text-gray-500">Resend in {formatTime(timer)}</p>
+              <p className="text-gray-500">{formatTime(timer)}</p>
             )}
           </div>
 
-          <button type="button" onClick={handleBackToLogin} className="text-gray-600 hover:text-gray-800 font-medium">
+          <button
+            onClick={handleBackToLogin}
+            className="w-full text-center mt-6 text-gray-700 font-medium"
+          >
             ← Back to {currentType === "register" ? "Sign Up" : "Login"}
           </button>
         </div>
-      </form>
+      </div>
     )
   }
 
-  // Original Login/Signup Form
+  // ---------------------- LOGIN + SIGNUP UI ----------------------
+
   return (
-    <form onSubmit={onSubmitHandler} className="min-h-[80vh] flex items-center">
-      <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg">
-        <p className="text-2xl font-semibold">{state === "Sign Up" ? "Create Account" : "Login"}</p>
-        <p>Please {state === "Sign Up" ? "sign up" : "log in"} to book appointment</p>
+    <div className="min-h-screen flex justify-center pt-6 px-4 bg-[#f4f4ff]">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
 
-        {state === "Sign Up" && (
-          <div className="w-full ">
-            <p>Full Name</p>
-            <input
-              onChange={(e) => setName(e.target.value)}
-              value={name}
-              className="border border-[#DADADA] rounded w-full p-2 mt-1"
-              type="text"
-              required
-              disabled={isLoading}
-            />
-          </div>
-        )}
+        <div className="w-full h-28 rounded-2xl bg-gradient-to-r from-[#726bff] to-[#9e96ff] flex justify-center items-center">
+          <span className="text-4xl text-white">💜</span>
+        </div>
 
-        <div className="w-full ">
-          <p>Email</p>
+        <h2 className="text-2xl font-bold text-center mt-6">
+          {state === "Sign Up" ? "Create Account" : "Welcome Back!"}
+        </h2>
+
+        <p className="text-gray-600 text-center mb-6">
+          {state === "Sign Up" ? "Join and explore great features" : "Login to continue"}
+        </p>
+
+        <form onSubmit={onSubmitHandler}>
+
+          {state === "Sign Up" && (
+            <>
+              <label className="font-semibold text-sm">Full Name</label>
+              <input
+                className="w-full mt-1 mb-4 p-3 border rounded-xl outline-none border-gray-300"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </>
+          )}
+
+          <label className="font-semibold text-sm">Email</label>
           <input
-            onChange={(e) => setEmail(e.target.value)}
-            value={email}
-            className="border border-[#DADADA] rounded w-full p-2 mt-1"
+            className="w-full mt-1 mb-4 p-3 border rounded-xl outline-none border-gray-300"
             type="email"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={isLoading}
           />
-        </div>
 
-        <div className="w-full ">
-          <p>Password</p>
+          <label className="font-semibold text-sm">Password</label>
           <input
-            onChange={(e) => setPassword(e.target.value)}
-            value={password}
-            className="border border-[#DADADA] rounded w-full p-2 mt-1"
+            className="w-full mt-1 mb-5 p-3 border rounded-xl outline-none border-gray-300"
             type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={isLoading}
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-primary text-white w-full py-2 my-2 rounded-md text-base disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
-        >
-          {isLoading ? "Sending OTP..." : state === "Sign Up" ? "Send OTP" : "Send Login OTP"}
-        </button>
+          <button
+            type="submit"
+            className="w-full py-3 bg-gradient-to-r from-[#6b63ff] to-[#9b92ff] text-white rounded-xl font-semibold"
+          >
+            {isLoading
+              ? "Sending OTP..."
+              : state === "Sign Up"
+              ? "Send OTP"
+              : "Login with OTP"}
+          </button>
+        </form>
 
-        {state === "Sign Up" ? (
-          <p>
-            Already have an account?
-            <span onClick={() => setState("Login")} className="text-primary underline cursor-pointer ml-1">
-              Login here
-            </span>
-          </p>
-        ) : (
-          <p>
-            Create a new account?
-            <span onClick={() => setState("Sign Up")} className="text-primary underline cursor-pointer ml-1">
-              Click here
-            </span>
-          </p>
-        )}
-
-        <div className="w-full mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-xs text-blue-700 font-medium mb-1">📧 Email Verification Required</p>
-          <p className="text-xs text-blue-600">
-            We'll send a 6-digit OTP to your email for verification. Please check your inbox and spam folder.
-          </p>
-        </div>
+        <p className="text-center mt-4">
+          {state === "Sign Up" ? (
+            <>
+              Already have an account?
+              <span
+                className="text-[#6b63ff] font-semibold ml-1 cursor-pointer underline"
+                onClick={() => setState("Login")}
+              >
+                Login
+              </span>
+            </>
+          ) : (
+            <>
+              Don't have an account?
+              <span
+                className="text-[#6b63ff] font-semibold ml-1 cursor-pointer underline"
+                onClick={() => setState("Sign Up")}
+              >
+                Sign Up
+              </span>
+            </>
+          )}
+        </p>
       </div>
-    </form>
+    </div>
   )
 }
 
