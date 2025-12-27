@@ -12,6 +12,7 @@ const labSchema = new mongoose.Schema({
   fees: { type: Number, default: 0 }, // default or representative fee
   available: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
+  
 });
 
 const labModel = mongoose.model("labs", labSchema);

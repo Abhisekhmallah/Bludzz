@@ -9,6 +9,7 @@ import userRouter from "./routes/userRoute.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
 import labRoute from "./routes/labRoute.js";
+import prescriptionRoutes from "./routes/prescriptionRoute.js"; // ✅ ADDED
 
 // =========================
 // APP SETUP
@@ -34,12 +35,18 @@ app.use(
 );
 
 // =========================
+// STATIC FILES (PRESCRIPTIONS)
+// =========================
+app.use("/uploads", express.static("uploads")); // ✅ ADDED
+
+// =========================
 // API ROUTES
 // =========================
 app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/doctor", doctorRoutes); // 🔑 includes /register-doctor
+app.use("/api/doctor", doctorRoutes);
 app.use("/api", labRoute);
+app.use("/api/prescriptions", prescriptionRoutes); // ✅ ADDED
 
 // =========================
 // ROOT HEALTH CHECK
