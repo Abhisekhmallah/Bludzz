@@ -10,7 +10,7 @@ import doctorRoutes from "./routes/doctorRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
 import labRoute from "./routes/labRoute.js";
 import prescriptionRoutes from "./routes/prescriptionRoute.js"; // ✅ ADDED
-
+import otpRoute from "./routes/otpRoute.js";
 // =========================
 // APP SETUP
 // =========================
@@ -47,7 +47,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api", labRoute);
 app.use("/api/prescriptions", prescriptionRoutes); // ✅ ADDED
-
+app.use("/api/otp", otpRoute);
 // =========================
 // ROOT HEALTH CHECK
 // =========================

@@ -165,60 +165,82 @@ const sendOTP = async (req, res) => {
 // API to verify OTP and complete authentication
 const verifyOTP = async (req, res) => {
   try {
-    const { email, otp, type } = req.body
+    const { email, otp, type } = req.body;
 
-    // Find user by email
-    const user = await userModel.findOne({ email })
+    const user = await userModel.findOne({ email });
     if (!user) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "User not found" });
     }
 
-    // Check if OTP matches and is not expired
+    // ✅ Email OTP check (existing)
     if (user.otp !== otp) {
-      return res.json({ success: false, message: "Invalid OTP" })
+      return res.json({ success: false, message: "Invalid OTP" });
     }
 
     if (new Date() > user.otpExpiry) {
-      return res.json({ success: false, message: "OTP has expired" })
+      return res.json({ success: false, message: "OTP has expired" });
     }
 
+    // 🔐 WhatsApp OTP check (NEW)
+    const whatsappOTPVerified = await OTP.findOne({
+      phone: user.phone,
+      verified: true
+    });
+
+    if (!whatsappOTPVerified) {
+      return res.json({
+        success: false,
+        message: "WhatsApp OTP verification required"
+      });
+    }
+
+    // cleanup WhatsApp OTP
+    await OTP.deleteMany({ phone: user.phone });
+
     if (type === "register") {
-      // Mark user as verified and clear OTP
       await userModel.findByIdAndUpdate(user._id, {
         isVerified: true,
         otp: null,
         otpExpiry: null,
-      })
+      });
 
-      // Generate JWT token
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
-      res.json({
+      return res.json({
         success: true,
         message: "Registration successful",
         token,
-      })
-    } else if (type === "login") {
-      // Clear OTP and generate token
+      });
+    }
+
+    if (type === "login") {
       await userModel.findByIdAndUpdate(user._id, {
         otp: null,
         otpExpiry: null,
-      })
+      });
 
-      // Generate JWT token
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
-      res.json({
+      return res.json({
         success: true,
         message: "Login successful",
         token,
-      })
+      });
     }
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.log(error);
+    res.json({ success: false, message: error.message });
   }
-}
+};
+
 
 // API to resend OTP
 const resendOTP = async (req, res) => {
