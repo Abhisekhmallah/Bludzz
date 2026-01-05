@@ -44,12 +44,13 @@ export default function DoctorRegistration() {
       });
 
     } catch (error) {
-      console.error(
-        "Doctor registration failed:",
-        error.response?.data || error.message
-      );
-      toast.error("Failed to submit form");
-    }
+  const message =
+    error.response?.data?.message || "Failed to submit form";
+
+  console.error("Doctor registration failed:", message);
+  toast.error(message);
+}
+
   }
 
   return (

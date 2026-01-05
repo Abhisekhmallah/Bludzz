@@ -47,7 +47,7 @@ const registerDoctor = async (req, res) => {
       });
     }
 
-    // 3️⃣ Save doctor registration
+    // 3️⃣ Save doctor registration (PENDING APPROVAL)
     const doctor = await DoctorRegistration.create({
       name,
       email,
@@ -57,23 +57,33 @@ const registerDoctor = async (req, res) => {
       clinicAddress
     });
 
-    // 4️⃣ Send email to ADMIN (OTP email)
-    await sendEmail({
-      to: process.env.EMAIL_USER, // same email used for OTP
-      subject: "New Doctor Registration – Bludz",
-      html: `
-        <h3>New Doctor Registration</h3>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Specialization:</b> ${specialization}</p>
-        <p><b>Experience:</b> ${experienceYears} years</p>
-        <p><b>Clinic Address:</b> ${clinicAddress}</p>
-        <p><b>Status:</b> Pending Approval</p>
-      `
-    });
+    // 4️⃣ Send email to ADMIN (MANDATORY)
+    try {
+      await sendEmail({
+        to: process.env.EMAIL_USER, // Admin email
+        subject: "New Doctor Registration – Bludz",
+        html: `
+          <h3>New Doctor Registration</h3>
+          <p><b>Name:</b> ${name}</p>
+          <p><b>Email:</b> ${email}</p>
+          <p><b>Phone:</b> ${phone}</p>
+          <p><b>Specialization:</b> ${specialization}</p>
+          <p><b>Experience:</b> ${experienceYears} years</p>
+          <p><b>Clinic Address:</b> ${clinicAddress}</p>
+          <p><b>Status:</b> Pending Approval</p>
+        `
+      });
+    } catch (mailError) {
+      console.error("❌ Admin email failed:", mailError);
 
-    // 5️⃣ Respond success ONLY if email succeeds
+      return res.status(500).json({
+        success: false,
+        message:
+          "Registration saved but failed to notify admin. Please try again later."
+      });
+    }
+
+    // 5️⃣ Success ONLY if email succeeds
     return res.status(201).json({
       success: true,
       message: "Doctor registration submitted successfully",
@@ -82,8 +92,6 @@ const registerDoctor = async (req, res) => {
 
   } catch (error) {
     console.error("REGISTER DOCTOR ERROR:", error);
-
-    // If email OR DB fails → frontend must see failure
     return res.status(500).json({
       success: false,
       message: "Failed to submit doctor registration"

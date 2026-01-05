@@ -35,7 +35,7 @@ const App = () => {
 
         {/* Doctor & Appointment Flow */}
         <Route path="/doctors" element={<Doctors />} />
-        <Route path="/doctors/:speciality" element={<Doctors />} />
+        <Route path="/doctors/:speciality" element={<Doctors/>} />
         <Route path="/doctor/:docId" element={<DoctorServices />} /> {/* ✅ Doctor details/services */}
         <Route path="/appointment/:docId" element={<Appointment />} />
         <Route path="/appointment/:docId/:serviceIndex" element={<Appointment />} />

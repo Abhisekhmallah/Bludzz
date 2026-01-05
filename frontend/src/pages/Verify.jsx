@@ -1,53 +1,53 @@
-import axios from 'axios';
-import React, { useContext, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AppContext } from '../context/AppContext';
-import { toast } from 'react-toastify';
+import { useLocation, useNavigate } from "react-router-dom"
+import axios from "axios"
+import { useState } from "react"
+import OTPInput from "../components/OTPInput"
 
-const Verify = () => {
+export default function Verify() {
+  const { state } = useLocation()
+  const navigate = useNavigate()
+  const [otp, setOtp] = useState("")
+  const [loading, setLoading] = useState(false)
 
-    const [searchParams, setSearchParams] = useSearchParams()
+  const handleVerify = async () => {
+    if (!otp || otp.length !== 6) return
 
-    const success = searchParams.get("success")
-    const appointmentId = searchParams.get("appointmentId")
+    setLoading(true)
 
-    const { backendUrl, token } = useContext(AppContext)
+    try {
+      const { data } = await axios.post("/api/user/verify-otp", {
+        email: state.email,
+        otp,
+        type: state.type, // "login" or "register"
+      })
 
-    const navigate = useNavigate()
-
-    // Function to verify stripe payment
-    const verifyStripe = async () => {
-
-        try {
-
-            const { data } = await axios.post(backendUrl + "/api/user/verifyStripe", { success, appointmentId }, { headers: { token } })
-
-            if (data.success) {
-                toast.success(data.message)
-            } else {
-                toast.error(data.message)
-            }
-
-            navigate("/my-appointments")
-
-        } catch (error) {
-            toast.error(error.message)
-            console.log(error)
-        }
-
+      if (data.success) {
+        localStorage.setItem("token", data.token)
+        navigate("/")
+      } else {
+        alert(data.message)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("OTP verification failed")
+    } finally {
+      setLoading(false)
     }
+  }
 
-    useEffect(() => {
-        if (token, appointmentId, success) {
-            verifyStripe()
-        }
-    }, [token])
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Verify Email OTP</h2>
 
-    return (
-        <div className='min-h-[60vh] flex items-center justify-center'>
-            <div className="w-20 h-20 border-4 border-gray-300 border-t-4 border-t-primary rounded-full animate-spin"></div>
-        </div>
-    )
+      <OTPInput value={otp} onChange={setOtp} />
+
+      <button
+        onClick={handleVerify}
+        disabled={loading || otp.length !== 6}
+        style={{ marginTop: 16 }}
+      >
+        {loading ? "Verifying..." : "Verify OTP"}
+      </button>
+    </div>
+  )
 }
-
-export default Verify

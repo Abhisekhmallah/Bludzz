@@ -1,70 +1,44 @@
 import nodemailer from "nodemailer";
-import twilio from "twilio";
+import Twilio from "twilio";
 
-/**
- * Generate 6-digit numeric OTP
- */
-const generateOTP = () => {
+// ---------------- OTP GENERATOR ----------------
+export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-/**
- * Send OTP via Email
- */
-const sendOTPEmail = async (email, otp) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD
-      }
-    });
+// ---------------- EMAIL OTP ----------------
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
-    await transporter.sendMail({
-      from: `"OTP Verification" <${process.env.SMTP_EMAIL}>`,
-      to: email,
-      subject: "Your OTP Code",
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>OTP Verification</h2>
-          <p>Your OTP code is:</p>
-          <h1>${otp}</h1>
-          <p>This OTP is valid for 5 minutes.</p>
-        </div>
-      `
-    });
-  } catch (error) {
-    console.error("Email OTP send failed:", error);
-    throw new Error("Failed to send OTP email");
-  }
+export const sendOTPEmail = async (email, otp, name = "") => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Bludz - OTP Verification",
+    html: `
+      <h2>Hello ${name}</h2>
+      <p>Your OTP is:</p>
+      <h1>${otp}</h1>
+      <p>This OTP is valid for 10 minutes.</p>
+    `,
+  });
 };
 
-/**
- * Send OTP via WhatsApp (Twilio)
- */
-const sendWhatsAppOTP = async (phone, otp) => {
-  try {
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+// ---------------- SMS OTP (TWILIO) ----------------
+const twilioClient = Twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
-    await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM, // whatsapp:+14155238886
-      to: `whatsapp:${phone}`,                // whatsapp:+91XXXXXXXXXX
-      body: `Your verification OTP is ${otp}. It is valid for 5 minutes.`
-    });
-  } catch (error) {
-    console.error("WhatsApp OTP send failed:", error);
-    throw new Error("Failed to send WhatsApp OTP");
-  }
-};
-
-export {
-  generateOTP,
-  sendOTPEmail,
-  sendWhatsAppOTP
+export const sendOTPSMS = async (phone, otp) => {
+  await twilioClient.messages.create({
+    body: `Your Bludz OTP is ${otp}. Valid for 10 minutes.`,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: phone,
+  });
 };
