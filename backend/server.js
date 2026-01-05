@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import "dotenv/config";
 
 import connectDB from "./config/mongodb.js";
@@ -11,50 +12,46 @@ import labRoute from "./routes/labRoute.js";
 import prescriptionRoutes from "./routes/prescriptionRoute.js";
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 10000;
 
 /* =========================
-   CONNECT SERVICES
+   DATABASE & SERVICES
 ========================= */
 connectDB();
 connectCloudinary();
 
 /* =========================
-   🔴 HARD CORS FIX (RENDER SAFE)
+   CORS (CRITICAL FIX)
 ========================= */
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://bludzz.vercel.app",
   "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app"
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server, Postman, Render health checks
+      if (!origin) return callback(null, true);
 
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
+      console.log("❌ Blocked by CORS:", origin);
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
-  // 🔥 THIS IS THE KEY
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
+// 🚨 THIS IS NON-NEGOTIABLE
+app.options("*", cors());
 
 /* =========================
-   BODY PARSER
+   MIDDLEWARES
 ========================= */
 app.use(express.json());
 
@@ -77,6 +74,13 @@ app.use("/api/prescriptions", prescriptionRoutes);
 ========================= */
 app.get("/", (req, res) => {
   res.send("API Working");
+});
+
+/* =========================
+   404
+========================= */
+app.use("*", (req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
 });
 
 /* =========================
