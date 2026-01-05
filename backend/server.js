@@ -11,87 +11,86 @@ import adminRouter from "./routes/adminRoute.js";
 import labRoute from "./routes/labRoute.js";
 import prescriptionRoutes from "./routes/prescriptionRoute.js";
 
-// =========================
-// APP SETUP
-// =========================
 const app = express();
 const port = process.env.PORT || 4000;
 
-// =========================
-// DATABASE & SERVICES
-// =========================
+/* =========================
+   CONNECT SERVICES
+========================= */
 connectDB();
 connectCloudinary();
 
-// =========================
-// CORS CONFIG (FIXED)
-// =========================
+/* =========================
+   CORS — MUST BE FIRST
+========================= */
 const allowedOrigins = [
   "http://localhost:5173",
   "https://bludzz.vercel.app",
   "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app"
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow server-to-server, Postman, Render health checks
-      if (!origin) return callback(null, true);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
 
-      console.error("❌ Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
-  })
-);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
 
-// 🔴 REQUIRED FOR PREFLIGHT
-app.options("*", cors());
+  // 🔴 CRITICAL: handle preflight HERE
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
 
+  next();
+});
 
-// =========================
-// MIDDLEWARES
-// =========================
+/* =========================
+   BODY PARSER
+========================= */
 app.use(express.json());
 
-// =========================
-// STATIC FILES
-// =========================
+/* =========================
+   STATIC FILES
+========================= */
 app.use("/uploads", express.static("uploads"));
 
-// =========================
-// API ROUTES
-// =========================
+/* =========================
+   ROUTES
+========================= */
 app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api", labRoute);
 app.use("/api/prescriptions", prescriptionRoutes);
 
-// =========================
-// ROOT HEALTH CHECK
-// =========================
+/* =========================
+   HEALTH CHECK
+========================= */
 app.get("/", (req, res) => {
   res.send("API Working");
 });
 
-// =========================
-// 404 HANDLER
-// =========================
+/* =========================
+   404 HANDLER
+========================= */
 app.use("*", (req, res) => {
-  console.log("❌ Unknown route hit:", req.method, req.originalUrl);
+  console.log("❌ Unknown route:", req.method, req.originalUrl);
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// =========================
-// START SERVER
-// =========================
+/* =========================
+   START SERVER
+========================= */
 app.listen(port, () => {
-  console.log(`🚀 Server started on PORT: ${port}`);
+  console.log(`🚀 Server running on PORT ${port}`);
 });
