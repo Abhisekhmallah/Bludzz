@@ -28,6 +28,7 @@ connectCloudinary();
 // =========================
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://bludzz.vercel.app",
   "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app"
 ];
 
@@ -39,10 +40,10 @@ app.use(
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
-      } else {
-        console.error("❌ CORS blocked origin:", origin);
-        return callback(new Error("Not allowed by CORS"));
       }
+
+      console.error("❌ Blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -50,8 +51,9 @@ app.use(
   })
 );
 
-// 🔴 VERY IMPORTANT — HANDLE PREFLIGHT REQUESTS
+// 🔴 REQUIRED FOR PREFLIGHT
 app.options("*", cors());
+
 
 // =========================
 // MIDDLEWARES
