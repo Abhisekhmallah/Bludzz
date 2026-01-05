@@ -24,22 +24,42 @@ connectDB();
 connectCloudinary();
 
 // =========================
-// MIDDLEWARES
+// CORS CONFIG (FIXED)
 // =========================
-app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app"
+];
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",                 // local frontend
-      "https://bludzz.vercel.app/"     // 🔴 replace with real Vercel URL
-    ],
+    origin: function (origin, callback) {
+      // Allow server-to-server, Postman, Render health checks
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.error("❌ CORS blocked origin:", origin);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 );
 
+// 🔴 VERY IMPORTANT — HANDLE PREFLIGHT REQUESTS
+app.options("*", cors());
+
 // =========================
-// STATIC FILES (PRESCRIPTIONS)
+// MIDDLEWARES
+// =========================
+app.use(express.json());
+
+// =========================
+// STATIC FILES
 // =========================
 app.use("/uploads", express.static("uploads"));
 
@@ -60,7 +80,7 @@ app.get("/", (req, res) => {
 });
 
 // =========================
-// 404 HANDLER (ALWAYS LAST)
+// 404 HANDLER
 // =========================
 app.use("*", (req, res) => {
   console.log("❌ Unknown route hit:", req.method, req.originalUrl);
