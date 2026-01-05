@@ -9,7 +9,7 @@ import userRouter from "./routes/userRoute.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
 import labRoute from "./routes/labRoute.js";
-import prescriptionRoutes from "./routes/prescriptionRoute.js"; // ✅ ADDED
+import prescriptionRoutes from "./routes/prescriptionRoute.js";
 
 // =========================
 // APP SETUP
@@ -27,9 +27,13 @@ connectCloudinary();
 // MIDDLEWARES
 // =========================
 app.use(express.json());
+
 app.use(
   cors({
-    origin: true,
+    origin: [
+      "http://localhost:5173",                 // local frontend
+      "https://bludzz.vercel.app/"     // 🔴 replace with real Vercel URL
+    ],
     credentials: true
   })
 );
@@ -37,7 +41,7 @@ app.use(
 // =========================
 // STATIC FILES (PRESCRIPTIONS)
 // =========================
-app.use("/uploads", express.static("uploads")); // ✅ ADDED
+app.use("/uploads", express.static("uploads"));
 
 // =========================
 // API ROUTES
@@ -46,7 +50,7 @@ app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api", labRoute);
-app.use("/api/prescriptions", prescriptionRoutes); // ✅ ADDED
+app.use("/api/prescriptions", prescriptionRoutes);
 
 // =========================
 // ROOT HEALTH CHECK

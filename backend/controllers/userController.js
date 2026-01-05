@@ -9,7 +9,7 @@ import stripe from "stripe"
 import nodemailer from "nodemailer"
 
 // ---------------- STRIPE INIT ----------------
-const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
+//const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
 
 // ---------------- EMAIL CONFIG ----------------
 const transporter = nodemailer.createTransport({
