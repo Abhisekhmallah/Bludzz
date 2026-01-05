@@ -1,5 +1,4 @@
 import express from "express";
-import cors from "cors";
 import "dotenv/config";
 
 import connectDB from "./config/mongodb.js";
@@ -21,7 +20,7 @@ connectDB();
 connectCloudinary();
 
 /* =========================
-   CORS — MUST BE FIRST
+   🔴 HARD CORS FIX (RENDER SAFE)
 ========================= */
 const allowedOrigins = [
   "http://localhost:5173",
@@ -33,22 +32,22 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
 
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header(
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
-  res.header(
+  res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
   );
 
-  // 🔴 CRITICAL: handle preflight HERE
+  // 🔥 THIS IS THE KEY
   if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
+    return res.status(200).end();
   }
 
   next();
@@ -78,14 +77,6 @@ app.use("/api/prescriptions", prescriptionRoutes);
 ========================= */
 app.get("/", (req, res) => {
   res.send("API Working");
-});
-
-/* =========================
-   404 HANDLER
-========================= */
-app.use("*", (req, res) => {
-  console.log("❌ Unknown route:", req.method, req.originalUrl);
-  res.status(404).json({ success: false, message: "Route not found" });
 });
 
 /* =========================
