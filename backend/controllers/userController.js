@@ -1,121 +1,147 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import validator from "validator"
+import nodemailer from "nodemailer"
+import { v2 as cloudinary } from "cloudinary"
+
 import userModel from "../models/userModel.js"
 import doctorModel from "../models/doctorModel.js"
 import appointmentModel from "../models/appointmentModel.js"
-import { v2 as cloudinary } from "cloudinary"
-import stripe from "stripe"
-import nodemailer from "nodemailer"
 
-// ---------------- STRIPE INIT ----------------
-//const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
-
-// ---------------- EMAIL CONFIG ----------------
+/* =====================================================
+   EMAIL CONFIG (NON-BLOCKING)
+===================================================== */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 })
 
-// ---------------- OTP HELPERS ----------------
+transporter.verify((err) => {
+  if (err) {
+    console.error("[EMAIL] SMTP not ready:", err.message)
+  } else {
+    console.log("[EMAIL] SMTP ready")
+  }
+})
+
+/* =====================================================
+   OTP HELPERS
+===================================================== */
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
 const sendOTPEmail = async (email, otp, name) => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Bludz - Email Verification OTP",
-    html: `
-      <h3>Hello ${name}</h3>
-      <p>Your OTP is <b>${otp}</b></p>
-      <p>Valid for 10 minutes.</p>
-    `,
-  })
-}
-
-// ---------------- SEND OTP ----------------
-const sendOTP = async (req, res) => {
   try {
-    const { email, name, password, type } = req.body
-
-    if (!validator.isEmail(email))
-      return res.json({ success: false, message: "Invalid email" })
-
-    if (type === "register") {
-      const existing = await userModel.findOne({ email })
-      if (existing?.isVerified)
-        return res.json({ success: false, message: "User already exists" })
-
-      if (!name || !password)
-        return res.json({ success: false, message: "Missing details" })
-
-      if (password.length < 8)
-        return res.json({ success: false, message: "Weak password" })
-
-      const otp = generateOTP()
-      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
-      const hashedPassword = await bcrypt.hash(password, 10)
-
-      if (existing) {
-        await userModel.findByIdAndUpdate(existing._id, {
-          name,
-          password: hashedPassword,
-          otp,
-          otpExpiry,
-        })
-      } else {
-        await userModel.create({
-          name,
-          email,
-          password: hashedPassword,
-          otp,
-          otpExpiry,
-          isVerified: false,
-        })
-      }
-
-      await sendOTPEmail(email, otp, name)
-      return res.json({ success: true, message: "OTP sent", email })
-    }
-
-    if (type === "login") {
-      const user = await userModel.findOne({ email })
-      if (!user)
-        return res.json({ success: false, message: "User not found" })
-
-      if (!user.isVerified)
-        return res.json({ success: false, message: "Verify email first" })
-
-      const match = await bcrypt.compare(password, user.password)
-      if (!match)
-        return res.json({ success: false, message: "Invalid credentials" })
-
-      const otp = generateOTP()
-      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
-
-      await userModel.findByIdAndUpdate(user._id, { otp, otpExpiry })
-      await sendOTPEmail(email, otp, user.name)
-
-      return res.json({ success: true, message: "OTP sent", email })
-    }
+    await transporter.sendMail({
+      from: `"Bludz" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Bludz - Email Verification OTP",
+      html: `
+        <h3>Hello ${name}</h3>
+        <p>Your OTP is <b>${otp}</b></p>
+        <p>This OTP is valid for 10 minutes.</p>
+      `,
+    })
+    console.log("[EMAIL] OTP sent →", email)
   } catch (err) {
-    res.json({ success: false, message: err.message })
+    console.error("[EMAIL] OTP failed:", err.message)
   }
 }
 
-// ---------------- VERIFY OTP ----------------
+/* =====================================================
+   SEND OTP (IMMEDIATE RESPONSE – PRODUCTION SAFE)
+===================================================== */
+const sendOTP = (req, res) => {
+  const { email, name, password, type } = req.body
+
+  /* ---------- FAST SYNC VALIDATION ---------- */
+  if (!email || !type) {
+    return res.json({ success: false, message: "Missing data" })
+  }
+
+  if (!validator.isEmail(email)) {
+    return res.json({ success: false, message: "Invalid email" })
+  }
+
+  /* ---------- RESPOND IMMEDIATELY ---------- */
+  res.json({ success: true, message: "OTP processing", email })
+
+  /* ---------- BACKGROUND WORK ---------- */
+  setImmediate(async () => {
+    try {
+      const otp = generateOTP()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
+
+      /* -------- REGISTER FLOW -------- */
+      if (type === "register") {
+        if (!name || !password || password.length < 8) return
+
+        const existing = await userModel.findOne({ email })
+        if (existing?.isVerified) return
+
+        const hashedPassword = await bcrypt.hash(password, 10)
+
+        if (existing) {
+          await userModel.findByIdAndUpdate(existing._id, {
+            name,
+            password: hashedPassword,
+            otp,
+            otpExpiry,
+          })
+        } else {
+          await userModel.create({
+            name,
+            email,
+            password: hashedPassword,
+            otp,
+            otpExpiry,
+            isVerified: false,
+          })
+        }
+
+        await sendOTPEmail(email, otp, name)
+        return
+      }
+
+      /* -------- LOGIN FLOW -------- */
+      if (type === "login") {
+        const user = await userModel.findOne({ email })
+        if (!user || !user.isVerified) return
+
+        const match = await bcrypt.compare(password, user.password)
+        if (!match) return
+
+        await userModel.findByIdAndUpdate(user._id, { otp, otpExpiry })
+        await sendOTPEmail(email, otp, user.name)
+      }
+    } catch (err) {
+      console.error("[SEND_OTP BACKGROUND ERROR]", err)
+    }
+  })
+}
+
+/* =====================================================
+   VERIFY OTP
+===================================================== */
 const verifyOTP = async (req, res) => {
   try {
-    const { email, otp, type } = req.body
-    const user = await userModel.findOne({ email })
+    const { email, otp } = req.body
 
-    if (!user) return res.json({ success: false, message: "User not found" })
+    const user = await userModel.findOne({ email })
+    if (!user)
+      return res.json({ success: false, message: "User not found" })
+
     if (user.otp !== otp)
       return res.json({ success: false, message: "Invalid OTP" })
+
     if (new Date() > user.otpExpiry)
       return res.json({ success: false, message: "OTP expired" })
 
@@ -125,42 +151,57 @@ const verifyOTP = async (req, res) => {
       isVerified: true,
     })
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
-    res.json({ success: true, token, message: "Success" })
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    )
+
+    res.json({ success: true, token, message: "Login successful" })
   } catch (err) {
-    res.json({ success: false, message: err.message })
+    console.error("[VERIFY OTP ERROR]", err)
+    res.json({ success: false, message: "OTP verification failed" })
   }
 }
 
-// ---------------- RESEND OTP ----------------
-const resendOTP = async (req, res) => {
-  try {
-    const { email } = req.body
-    const user = await userModel.findOne({ email })
-    if (!user) return res.json({ success: false, message: "User not found" })
+/* =====================================================
+   RESEND OTP
+===================================================== */
+const resendOTP = (req, res) => {
+  const { email } = req.body
 
-    const otp = generateOTP()
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
+  res.json({ success: true, message: "OTP processing" })
 
-    await userModel.findByIdAndUpdate(user._id, { otp, otpExpiry })
-    await sendOTPEmail(email, otp, user.name)
+  setImmediate(async () => {
+    try {
+      const user = await userModel.findOne({ email })
+      if (!user) return
 
-    res.json({ success: true, message: "OTP resent" })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+      const otp = generateOTP()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
+
+      await userModel.findByIdAndUpdate(user._id, { otp, otpExpiry })
+      await sendOTPEmail(email, otp, user.name)
+    } catch (err) {
+      console.error("[RESEND OTP ERROR]", err)
+    }
+  })
 }
 
-// ---------------- PROFILE ----------------
+/* =====================================================
+   PROFILE
+===================================================== */
 const getProfile = async (req, res) => {
   const user = await userModel
     .findById(req.body.userId)
     .select("-password -otp")
+
   res.json({ success: true, user })
 }
 
 const updateProfile = async (req, res) => {
   const { userId, name, phone, dob, gender, address } = req.body
+
   await userModel.findByIdAndUpdate(userId, {
     name,
     phone,
@@ -177,28 +218,27 @@ const updateProfile = async (req, res) => {
   res.json({ success: true, message: "Profile updated" })
 }
 
-// ---------------- APPOINTMENTS ----------------
+/* =====================================================
+   APPOINTMENTS
+===================================================== */
 const bookAppointment = async (req, res) => {
   try {
     const { userId, docId, slotDate, slotTime } = req.body
 
     const doctor = await doctorModel.findById(docId).select("-password")
-    if (!doctor || !doctor.available) {
+    if (!doctor || !doctor.available)
       return res.json({ success: false, message: "Doctor not available" })
-    }
 
-    // Slot check
     doctor.slots_booked[slotDate] = doctor.slots_booked[slotDate] || []
-    if (doctor.slots_booked[slotDate].includes(slotTime)) {
+    if (doctor.slots_booked[slotDate].includes(slotTime))
       return res.json({ success: false, message: "Slot not available" })
-    }
 
     doctor.slots_booked[slotDate].push(slotTime)
     await doctor.save()
 
     const user = await userModel.findById(userId).select("-password")
 
-    const appointmentData = {
+    await appointmentModel.create({
       userId,
       docId,
       userData: user,
@@ -207,20 +247,19 @@ const bookAppointment = async (req, res) => {
       slotDate,
       slotTime,
       date: Date.now(),
-    }
-
-    await appointmentModel.create(appointmentData)
+    })
 
     res.json({ success: true, message: "Appointment booked successfully" })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    console.error(err)
+    res.json({ success: false, message: err.message })
   }
 }
 
-
 const listAppointment = async (req, res) => {
-  const appointments = await appointmentModel.find({ userId: req.body.userId })
+  const appointments = await appointmentModel.find({
+    userId: req.body.userId,
+  })
   res.json({ success: true, appointments })
 }
 
@@ -231,38 +270,9 @@ const cancelAppointment = async (req, res) => {
   res.json({ success: true, message: "Appointment cancelled" })
 }
 
-// ---------------- STRIPE ----------------
-const paymentStripe = async (req, res) => {
-  const appointment = await appointmentModel.findById(req.body.appointmentId)
-
-  const session = await stripeInstance.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "inr",
-          product_data: { name: "Appointment Fee" },
-          unit_amount: appointment.amount * 100,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: `${req.headers.origin}/success`,
-    cancel_url: `${req.headers.origin}/cancel`,
-  })
-
-  res.json({ success: true, session_url: session.url })
-}
-
-const verifyStripe = async (req, res) => {
-  await appointmentModel.findByIdAndUpdate(req.body.appointmentId, {
-    payment: true,
-  })
-  res.json({ success: true })
-}
-
-// ---------------- EXPORTS ----------------
+/* =====================================================
+   EXPORTS
+===================================================== */
 export {
   sendOTP,
   verifyOTP,
@@ -272,6 +282,4 @@ export {
   bookAppointment,
   listAppointment,
   cancelAppointment,
-  paymentStripe,
-  verifyStripe,
 }

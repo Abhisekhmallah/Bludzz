@@ -11,8 +11,6 @@ import {
   bookAppointment,
   listAppointment,
   cancelAppointment,
-  paymentStripe,
-  verifyStripe,
 } from "../controllers/userController.js"
 
 const userRouter = express.Router()
@@ -35,9 +33,5 @@ userRouter.post(
 userRouter.post("/book-appointment", authUser, bookAppointment)
 userRouter.get("/appointments", authUser, listAppointment)
 userRouter.post("/cancel-appointment", authUser, cancelAppointment)
-
-// ---------------- PAYMENTS (STRIPE ONLY) ----------------
-userRouter.post("/payment-stripe", authUser, paymentStripe)
-userRouter.post("/verify-stripe", authUser, verifyStripe)
 
 export default userRouter

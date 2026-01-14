@@ -1,91 +1,118 @@
-import express from "express";
-import cors from "cors";
-import "dotenv/config";
+import express from "express"
+import cors from "cors"
+import "dotenv/config"
 
-import connectDB from "./config/mongodb.js";
-import connectCloudinary from "./config/cloudinary.js";
+import connectDB from "./config/mongodb.js"
+import connectCloudinary from "./config/cloudinary.js"
 
-import userRouter from "./routes/userRoute.js";
-import doctorRoutes from "./routes/doctorRoutes.js";
-import adminRouter from "./routes/adminRoute.js";
-import labRoute from "./routes/labRoute.js";
-import prescriptionRoutes from "./routes/prescriptionRoute.js";
+import userRouter from "./routes/userRoute.js"
+import doctorRoutes from "./routes/doctorRoutes.js"
+import adminRouter from "./routes/adminRoute.js"
+import labRoute from "./routes/labRoute.js"
+import prescriptionRoutes from "./routes/prescriptionRoute.js"
 
-const app = express();
-const port = process.env.PORT || 10000;
+const app = express()
+const PORT = process.env.PORT || 10000
 
 /* =========================
    DATABASE & SERVICES
 ========================= */
-connectDB();
-connectCloudinary();
+const startServices = async () => {
+  try {
+    await connectDB()
+    connectCloudinary()
+    console.log("✅ Services initialized")
+  } catch (err) {
+    console.error("❌ Failed to initialize services:", err.message)
+    process.exit(1)
+  }
+}
 
 /* =========================
-   CORS (CRITICAL FIX)
+   CORS CONFIG
 ========================= */
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app"
-];
+  "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app",
+]
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server, Postman, Render health checks
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true)
 
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        return callback(null, true)
       }
 
-      console.log("❌ Blocked by CORS:", origin);
-      return callback(null, false);
+      console.log("❌ Blocked by CORS:", origin)
+      return callback(new Error("Not allowed by CORS"))
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
-);
+)
 
-// 🚨 THIS IS NON-NEGOTIABLE
-app.options("*", cors());
+// Required for preflight
+app.options("*", cors())
 
 /* =========================
    MIDDLEWARES
 ========================= */
-app.use(express.json());
+app.use(express.json())
 
 /* =========================
    STATIC FILES
 ========================= */
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static("uploads"))
 
 /* =========================
    ROUTES
 ========================= */
-app.use("/api/user", userRouter);
-app.use("/api/admin", adminRouter);
-app.use("/api/doctor", doctorRoutes);
-app.use("/api", labRoute);
-app.use("/api/prescriptions", prescriptionRoutes);
+app.use("/api/user", userRouter)
+app.use("/api/admin", adminRouter)
+app.use("/api/doctor", doctorRoutes)
+app.use("/api", labRoute)
+app.use("/api/prescriptions", prescriptionRoutes)
 
 /* =========================
    HEALTH CHECK
 ========================= */
 app.get("/", (req, res) => {
-  res.send("API Working");
-});
+  res.send("API Working")
+})
 
 /* =========================
-   404
+   404 HANDLER
 ========================= */
-app.use("*", (req, res) => {
-  res.status(404).json({ success: false, message: "Route not found" });
-});
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  })
+})
 
 /* =========================
-   START SERVER
+   START SERVER (SAFE)
 ========================= */
-app.listen(port, () => {
-  console.log(`🚀 Server running on PORT ${port}`);
-});
+const startServer = async () => {
+  await startServices()
+
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on PORT ${PORT}`)
+  })
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`❌ Port ${PORT} is already in use`)
+      console.error("➡️ Stop the running process or change PORT")
+      process.exit(1)
+    } else {
+      console.error("❌ Server error:", err)
+      process.exit(1)
+    }
+  })
+}
+
+startServer()
