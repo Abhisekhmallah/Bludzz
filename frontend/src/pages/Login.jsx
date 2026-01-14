@@ -1,5 +1,3 @@
-"use client"
-
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../context/AppContext"
 import axios from "axios"
@@ -23,18 +21,21 @@ const Login = () => {
   const navigate = useNavigate()
   const { backendUrl, token, setToken } = useContext(AppContext)
 
-  // ---------------- SEND OTP (EMAIL ONLY) ----------------
-  const onSubmitHandler = async (event) => {
-    event.preventDefault()
+  // ---------------- SEND OTP ----------------
+  const onSubmitHandler = async (e) => {
+    e.preventDefault()
     setIsLoading(true)
 
     try {
-      const { data } = await axios.post(backendUrl + "/api/user/send-otp", {
-        name,
-        email,
-        password,
-        type: state === "Sign Up" ? "register" : "login",
-      })
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/send-otp`,
+        {
+          name,
+          email,
+          password,
+          type: state === "Sign Up" ? "register" : "login",
+        }
+      )
 
       if (!data.success) {
         toast.error(data.message)
@@ -42,42 +43,44 @@ const Login = () => {
       }
 
       toast.success("OTP sent to your email")
-
-      setCurrentEmail(data.email)
+      setCurrentEmail(email)
       setCurrentType(state === "Sign Up" ? "register" : "login")
       setShowOTP(true)
       setTimer(60)
       setCanResend(false)
-
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong")
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send OTP")
     } finally {
       setIsLoading(false)
     }
   }
 
   // ---------------- VERIFY OTP ----------------
-  const handleOTPVerification = async (event) => {
-    event.preventDefault()
+  const handleOTPVerification = async (e) => {
+    e.preventDefault()
     setIsLoading(true)
 
     try {
-      const { data } = await axios.post(backendUrl + "/api/user/verify-otp", {
-        email: currentEmail,
-        otp,
-        type: currentType,
-      })
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/verify-otp`,
+        {
+          email: currentEmail,
+          otp,
+          type: currentType,
+        }
+      )
 
-      if (data.success) {
-        toast.success(data.message)
-        localStorage.setItem("token", data.token)
-        setToken(data.token)
-        setShowOTP(false)
-      } else {
+      if (!data.success) {
         toast.error(data.message)
+        return
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "OTP verification failed")
+
+      toast.success(data.message)
+      localStorage.setItem("token", data.token)
+      setToken(data.token)
+      navigate("/")
+    } catch (err) {
+      toast.error(err.response?.data?.message || "OTP verification failed")
     } finally {
       setIsLoading(false)
     }
@@ -86,9 +89,10 @@ const Login = () => {
   // ---------------- RESEND OTP ----------------
   const handleResendOTP = async () => {
     try {
-      const { data } = await axios.post(backendUrl + "/api/user/resend-otp", {
-        email: currentEmail,
-      })
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/resend-otp`,
+        { email: currentEmail }
+      )
 
       if (data.success) {
         toast.success(data.message)
@@ -98,53 +102,32 @@ const Login = () => {
       } else {
         toast.error(data.message)
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to resend OTP")
+    } catch {
+      toast.error("Failed to resend OTP")
     }
-  }
-
-  const handleBackToLogin = () => {
-    setShowOTP(false)
-    setCurrentEmail("")
-    setCurrentType("")
-    setOtp("")
-    setTimer(60)
-    setCanResend(false)
-  }
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
   useEffect(() => {
-    if (timer > 0 && showOTP) {
-      const interval = setInterval(() => setTimer((t) => t - 1), 1000)
-      return () => clearInterval(interval)
-    } else if (timer === 0) {
-      setCanResend(true)
+    if (showOTP && timer > 0) {
+      const id = setInterval(() => setTimer((t) => t - 1), 1000)
+      return () => clearInterval(id)
     }
+    if (timer === 0) setCanResend(true)
   }, [timer, showOTP])
 
   useEffect(() => {
     if (token) navigate("/")
   }, [token])
 
-  // ---------------- OTP UI ----------------
   if (showOTP) {
     return (
       <div className="min-h-screen flex justify-center pt-6 px-4 bg-[#f4f4ff]">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
-
-          <h2 className="text-2xl font-bold text-center mt-6">Verify Email</h2>
-          <p className="text-gray-600 text-center mb-5">
-            Enter the OTP sent to {currentEmail}
-          </p>
+          <h2 className="text-2xl font-bold text-center">Verify Email</h2>
 
           <form onSubmit={handleOTPVerification}>
             <input
-              className="w-full p-3 border rounded-xl text-center text-xl"
+              className="w-full p-3 border rounded-xl text-center text-xl mt-4"
               maxLength="6"
               placeholder="000000"
               value={otp}
@@ -154,7 +137,7 @@ const Login = () => {
 
             <button
               className="w-full mt-4 py-3 bg-[#6b63ff] text-white rounded-xl"
-              disabled={otp.length !== 6 || isLoading}
+              disabled={isLoading || otp.length !== 6}
             >
               {isLoading ? "Verifying..." : "Verify OTP"}
             </button>
@@ -162,31 +145,25 @@ const Login = () => {
 
           <div className="text-center mt-4">
             {canResend ? (
-              <button onClick={handleResendOTP} className="text-[#6b63ff] underline">
+              <button
+                onClick={handleResendOTP}
+                className="text-[#6b63ff] underline"
+              >
                 Resend OTP
               </button>
             ) : (
-              <p>{formatTime(timer)}</p>
+              <p>{timer}s</p>
             )}
           </div>
-
-          <button
-            onClick={handleBackToLogin}
-            className="w-full mt-4 text-gray-600"
-          >
-            ← Back
-          </button>
         </div>
       </div>
     )
   }
 
-  // ---------------- LOGIN / SIGNUP UI ----------------
   return (
     <div className="min-h-screen flex justify-center pt-6 px-4 bg-[#f4f4ff]">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
-
-        <h2 className="text-2xl font-bold text-center mt-6">
+        <h2 className="text-2xl font-bold text-center">
           {state === "Sign Up" ? "Create Account" : "Welcome Back"}
         </h2>
 
@@ -219,14 +196,10 @@ const Login = () => {
           />
 
           <button
-            type="submit"
             className="w-full py-3 bg-[#6b63ff] text-white rounded-xl"
+            disabled={isLoading}
           >
-            {isLoading
-              ? "Sending OTP..."
-              : state === "Sign Up"
-              ? "Send OTP"
-              : "Login with OTP"}
+            {isLoading ? "Sending OTP..." : "Send OTP"}
           </button>
         </form>
 
