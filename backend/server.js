@@ -33,7 +33,7 @@ const startServices = async () => {
 ========================= */
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://bludzz-n5d8con2o-abhishek-mallah-s-projects.vercel.app",
+  "https://bludzz.vercel.app"
 ]
 
 app.use(
@@ -41,7 +41,13 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true)
 
+      // Allow localhost
       if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+
+      // Allow ALL Vercel preview deployments
+      if (origin.endsWith(".vercel.app")) {
         return callback(null, true)
       }
 
