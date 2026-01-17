@@ -39,14 +39,15 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
+      // allow server-to-server & health checks
       if (!origin) return callback(null, true)
 
-      // Allow localhost
-      if (allowedOrigins.includes(origin)) {
+      // allow localhost
+      if (origin === "http://localhost:5173") {
         return callback(null, true)
       }
 
-      // Allow ALL Vercel preview deployments
+      // allow ALL vercel deployments
       if (origin.endsWith(".vercel.app")) {
         return callback(null, true)
       }

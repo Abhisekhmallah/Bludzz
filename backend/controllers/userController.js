@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import validator from "validator"
-import nodemailer from "nodemailer"
+import axios from "axios"
 import { v2 as cloudinary } from "cloudinary"
 
 import userModel from "../models/userModel.js"
@@ -9,78 +9,72 @@ import doctorModel from "../models/doctorModel.js"
 import appointmentModel from "../models/appointmentModel.js"
 
 /* =====================================================
-   EMAIL CONFIG (NON-BLOCKING)
-===================================================== */
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-})
-
-transporter.verify((err) => {
-  if (err) {
-    console.error("[EMAIL] SMTP not ready:", err.message)
-  } else {
-    console.log("[EMAIL] SMTP ready")
-  }
-})
-
-/* =====================================================
    OTP HELPERS
 ===================================================== */
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
+/* =====================================================
+   EMAIL VIA BREVO (HTTP API – WORKS ON RENDER)
+===================================================== */
 const sendOTPEmail = async (email, otp, name) => {
   try {
-    await transporter.sendMail({
-      from: `"Bludz" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Bludz - Email Verification OTP",
-      html: `
-        <h3>Hello ${name}</h3>
-        <p>Your OTP is <b>${otp}</b></p>
-        <p>This OTP is valid for 10 minutes.</p>
-      `,
-    })
-    console.log("[EMAIL] OTP sent →", email)
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "Bludz",
+          email: process.env.EMAIL_FROM,
+        },
+        to: [{ email }],
+        subject: "Your Bludz OTP",
+        htmlContent: `
+          <h3>Hello ${name}</h3>
+          <p>Your OTP is <b>${otp}</b></p>
+          <p>This OTP is valid for 10 minutes.</p>
+        `,
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    )
+
+    console.log("✅ OTP email sent via Brevo →", email)
   } catch (err) {
-    console.error("[EMAIL] OTP failed:", err.message)
+    console.error(
+      "❌ Brevo email failed:",
+      err.response?.data || err.message
+    )
   }
 }
 
 /* =====================================================
-   SEND OTP (IMMEDIATE RESPONSE – PRODUCTION SAFE)
+   SEND OTP (IMMEDIATE RESPONSE, BACKGROUND WORK)
 ===================================================== */
 const sendOTP = (req, res) => {
   const { email, name, password, type } = req.body
 
-  /* ---------- FAST SYNC VALIDATION ---------- */
-  if (!email || !type) {
+  // ---- FAST VALIDATION ----
+  if (!email || !type)
     return res.json({ success: false, message: "Missing data" })
-  }
 
-  if (!validator.isEmail(email)) {
+  if (!validator.isEmail(email))
     return res.json({ success: false, message: "Invalid email" })
-  }
 
-  /* ---------- RESPOND IMMEDIATELY ---------- */
-  res.json({ success: true, message: "OTP processing", email })
+  // ---- RESPOND IMMEDIATELY ----
+  res.json({ success: true, message: "OTP sent", email })
 
-  /* ---------- BACKGROUND WORK ---------- */
+  // ---- BACKGROUND PROCESS ----
   setImmediate(async () => {
     try {
       const otp = generateOTP()
       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
-      /* -------- REGISTER FLOW -------- */
+      // -------- REGISTER --------
       if (type === "register") {
         if (!name || !password || password.length < 8) return
 
@@ -111,7 +105,7 @@ const sendOTP = (req, res) => {
         return
       }
 
-      /* -------- LOGIN FLOW -------- */
+      // -------- LOGIN --------
       if (type === "login") {
         const user = await userModel.findOne({ email })
         if (!user || !user.isVerified) return
@@ -123,7 +117,7 @@ const sendOTP = (req, res) => {
         await sendOTPEmail(email, otp, user.name)
       }
     } catch (err) {
-      console.error("[SEND_OTP BACKGROUND ERROR]", err)
+      console.error("[SEND OTP ERROR]", err)
     }
   })
 }
@@ -170,7 +164,7 @@ const verifyOTP = async (req, res) => {
 const resendOTP = (req, res) => {
   const { email } = req.body
 
-  res.json({ success: true, message: "OTP processing" })
+  res.json({ success: true, message: "OTP sent" })
 
   setImmediate(async () => {
     try {
