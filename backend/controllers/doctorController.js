@@ -62,6 +62,8 @@ const registerDoctor = async (req, res) => {
       clinicAddress,
     } = req.body
 
+    const document = req.file?.path
+
     if (
       !name ||
       !email ||
@@ -73,6 +75,13 @@ const registerDoctor = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
+      })
+    }
+
+    if (!document) {
+      return res.status(400).json({
+        success: false,
+        message: "Medical document is required",
       })
     }
 
@@ -95,6 +104,8 @@ const registerDoctor = async (req, res) => {
       specialization,
       experienceYears,
       clinicAddress,
+      document,        // 🔥 STORE FILE PATH
+      status: "pending",
     })
 
     // ✅ RESPOND IMMEDIATELY (FRONTEND SAFE)
