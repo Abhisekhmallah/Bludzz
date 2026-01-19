@@ -15,9 +15,12 @@ const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
 /* =====================================================
-   EMAIL VIA BREVO (HTTP API – WORKS ON RENDER)
+   EMAIL VIA BREVO (DEBUG ENABLED)
 ===================================================== */
 const sendOTPEmail = async (email, otp, name) => {
+  // 🔥 TEMP DEBUG — DO NOT REMOVE YET
+  console.log("BREVO PAYLOAD:", email, otp)
+
   try {
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
@@ -53,22 +56,22 @@ const sendOTPEmail = async (email, otp, name) => {
 }
 
 /* =====================================================
-   SEND OTP (IMMEDIATE RESPONSE, BACKGROUND WORK)
+   SEND OTP (IMMEDIATE RESPONSE + BACKGROUND JOB)
 ===================================================== */
 const sendOTP = (req, res) => {
   const { email, name, password, type } = req.body
 
-  // ---- FAST VALIDATION ----
+  // ---------- FAST VALIDATION ----------
   if (!email || !type)
     return res.json({ success: false, message: "Missing data" })
 
   if (!validator.isEmail(email))
     return res.json({ success: false, message: "Invalid email" })
 
-  // ---- RESPOND IMMEDIATELY ----
+  // ---------- RESPOND IMMEDIATELY ----------
   res.json({ success: true, message: "OTP sent", email })
 
-  // ---- BACKGROUND PROCESS ----
+  // ---------- BACKGROUND PROCESS ----------
   setImmediate(async () => {
     try {
       const otp = generateOTP()
