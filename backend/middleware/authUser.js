@@ -7,7 +7,7 @@ const authUser = (req, res, next) => {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: "Not authorized, token missing",
+        message: "Not authorized",
       })
     }
 
@@ -17,6 +17,8 @@ const authUser = (req, res, next) => {
     req.body.userId = decoded.id
     next()
   } catch (error) {
+    console.error("AUTH ERROR:", error.message)
+
     return res.status(401).json({
       success: false,
       message: "Not authorized, invalid token",

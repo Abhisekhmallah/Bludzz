@@ -7,41 +7,30 @@ import appointmentModel from "../models/appointmentModel.js"
 import DoctorRegistration from "../models/DoctorRegistration.js"
 
 /* =====================================================
-   BREVO EMAIL HELPER (ADMIN NOTIFICATION)
+   BREVO EMAIL – ADMIN NOTIFICATION (NON-BLOCKING)
 ===================================================== */
-const sendAdminEmail = async (doctorData) => {
-  const {
-    name,
-    email,
-    phone,
-    specialization,
-    experienceYears,
-    clinicAddress,
-  } = doctorData
-
+const notifyAdmin = async (doctor) => {
   try {
+    console.log("BREVO DOCTOR PAYLOAD:", doctor.email)
+
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {
-          name: "Bludz Platform",
+          name: "Bludz",
           email: process.env.EMAIL_FROM,
         },
-        to: [
-          {
-            email: process.env.ADMIN_EMAIL, // admin email
-          },
-        ],
+        to: [{ email: process.env.ADMIN_EMAIL }],
         subject: "New Doctor Registration – Bludz",
         htmlContent: `
           <h3>New Doctor Registration</h3>
-          <p><b>Name:</b> ${name}</p>
-          <p><b>Email:</b> ${email}</p>
-          <p><b>Phone:</b> ${phone}</p>
-          <p><b>Specialization:</b> ${specialization}</p>
-          <p><b>Experience:</b> ${experienceYears} years</p>
-          <p><b>Clinic Address:</b> ${clinicAddress}</p>
-          <p><b>Status:</b> Pending Approval</p>
+          <p><b>Name:</b> ${doctor.name}</p>
+          <p><b>Email:</b> ${doctor.email}</p>
+          <p><b>Phone:</b> ${doctor.phone}</p>
+          <p><b>Specialization:</b> ${doctor.specialization}</p>
+          <p><b>Experience:</b> ${doctor.experienceYears} years</p>
+          <p><b>Clinic Address:</b> ${doctor.clinicAddress}</p>
+          <p>Status: Pending Approval</p>
         `,
       },
       {
@@ -55,15 +44,12 @@ const sendAdminEmail = async (doctorData) => {
 
     console.log("✅ Admin notified via Brevo")
   } catch (err) {
-    console.error(
-      "❌ Admin email failed:",
-      err.response?.data || err.message
-    )
+    console.error("❌ Admin email failed:", err.response?.data || err.message)
   }
 }
 
 /* =========================
-   DOCTOR SELF REGISTRATION
+   DOCTOR SELF REGISTRATION (FIXED)
 ========================= */
 const registerDoctor = async (req, res) => {
   try {
@@ -76,7 +62,6 @@ const registerDoctor = async (req, res) => {
       clinicAddress,
     } = req.body
 
-    // 1️⃣ Validate input
     if (
       !name ||
       !email ||
@@ -91,19 +76,18 @@ const registerDoctor = async (req, res) => {
       })
     }
 
-    // 2️⃣ Prevent duplicate registration
-    const alreadyExists =
+    const exists =
       (await DoctorRegistration.findOne({ email })) ||
       (await doctorModel.findOne({ email }))
 
-    if (alreadyExists) {
+    if (exists) {
       return res.status(409).json({
         success: false,
         message: "Doctor already registered with this email",
       })
     }
 
-    // 3️⃣ Save doctor registration (PENDING APPROVAL)
+    // ✅ SAVE FIRST (SOURCE OF TRUTH)
     const doctor = await DoctorRegistration.create({
       name,
       email,
@@ -113,18 +97,17 @@ const registerDoctor = async (req, res) => {
       clinicAddress,
     })
 
-    // 4️⃣ Respond immediately (DO NOT BLOCK UI)
+    // ✅ RESPOND IMMEDIATELY (FRONTEND SAFE)
     res.status(201).json({
       success: true,
       message: "Doctor registration submitted successfully",
-      doctor,
     })
 
-    // 5️⃣ Notify admin in background
-    sendAdminEmail(doctor)
-  } catch (error) {
-    console.error("REGISTER DOCTOR ERROR:", error)
-    return res.status(500).json({
+    // 🔥 EMAIL IN BACKGROUND (DOES NOT AFFECT UI)
+    setImmediate(() => notifyAdmin(doctor))
+  } catch (err) {
+    console.error("REGISTER DOCTOR ERROR:", err)
+    res.status(500).json({
       success: false,
       message: "Failed to submit doctor registration",
     })
@@ -137,22 +120,24 @@ const registerDoctor = async (req, res) => {
 const loginDoctor = async (req, res) => {
   try {
     const { email, password } = req.body
-    const user = await doctorModel.findOne({ email })
 
-    if (!user)
+    const doctor = await doctorModel.findOne({ email })
+    if (!doctor)
       return res.json({ success: false, message: "Invalid credentials" })
 
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch)
+    const match = await bcrypt.compare(password, doctor.password)
+    if (!match)
       return res.json({ success: false, message: "Invalid credentials" })
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    })
+    const token = jwt.sign(
+      { id: doctor._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    )
 
     res.json({ success: true, token })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
@@ -164,17 +149,17 @@ const appointmentsDoctor = async (req, res) => {
     const { docId } = req.body
     const appointments = await appointmentModel.find({ docId })
     res.json({ success: true, appointments })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
 const appointmentCancel = async (req, res) => {
   try {
     const { docId, appointmentId } = req.body
-    const appointmentData = await appointmentModel.findById(appointmentId)
+    const appointment = await appointmentModel.findById(appointmentId)
 
-    if (appointmentData && appointmentData.docId === docId) {
+    if (appointment && appointment.docId === docId) {
       await appointmentModel.findByIdAndUpdate(appointmentId, {
         cancelled: true,
       })
@@ -182,17 +167,17 @@ const appointmentCancel = async (req, res) => {
     }
 
     res.json({ success: false, message: "Unauthorized action" })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
 const appointmentComplete = async (req, res) => {
   try {
     const { docId, appointmentId } = req.body
-    const appointmentData = await appointmentModel.findById(appointmentId)
+    const appointment = await appointmentModel.findById(appointmentId)
 
-    if (appointmentData && appointmentData.docId === docId) {
+    if (appointment && appointment.docId === docId) {
       await appointmentModel.findByIdAndUpdate(appointmentId, {
         isCompleted: true,
       })
@@ -200,8 +185,8 @@ const appointmentComplete = async (req, res) => {
     }
 
     res.json({ success: false, message: "Unauthorized action" })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
@@ -212,8 +197,8 @@ const doctorList = async (req, res) => {
   try {
     const doctors = await doctorModel.find({}).select("-password -email")
     res.json({ success: true, doctors })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
@@ -225,8 +210,8 @@ const changeAvailablity = async (req, res) => {
       available: !doc.available,
     })
     res.json({ success: true, message: "Availability Changed" })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
@@ -237,8 +222,8 @@ const doctorProfile = async (req, res) => {
       .findById(docId)
       .select("-password")
     res.json({ success: true, profileData })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
@@ -251,14 +236,11 @@ const updateDoctorProfile = async (req, res) => {
       available,
     })
     res.json({ success: true, message: "Profile Updated" })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 
-/* =========================
-   DASHBOARD
-========================= */
 const doctorDashboard = async (req, res) => {
   try {
     const { docId } = req.body
@@ -281,8 +263,8 @@ const doctorDashboard = async (req, res) => {
         latestAppointments: appointments.reverse(),
       },
     })
-  } catch (error) {
-    res.json({ success: false, message: error.message })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
   }
 }
 

@@ -29,32 +29,15 @@ const startServices = async () => {
 }
 
 /* =========================
-   CORS CONFIG
+   CORS CONFIG (PRODUCTION SAFE)
 ========================= */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://bludzz.vercel.app"
-]
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // allow server-to-server & health checks
-      if (!origin) return callback(null, true)
-
-      // allow localhost
-      if (origin === "http://localhost:5173") {
-        return callback(null, true)
-      }
-
-      // allow ALL vercel deployments
-      if (origin.endsWith(".vercel.app")) {
-        return callback(null, true)
-      }
-
-      console.log("❌ Blocked by CORS:", origin)
-      return callback(new Error("Not allowed by CORS"))
-    },
+    origin: [
+      "http://localhost:5173",
+      "https://bludzz.vercel.app",
+      "https://bludzz-1.onrender.com",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

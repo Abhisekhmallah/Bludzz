@@ -16,7 +16,7 @@ const AppContextProvider = ({ children }) => {
 
   // ---------------- SAFETY CHECK ----------------
   if (!backendUrl) {
-    console.error("VITE_BACKEND_URL is not defined")
+    console.error("❌ VITE_BACKEND_URL is not defined")
   }
 
   // ---------------- DOCTORS ----------------
@@ -36,12 +36,14 @@ const AppContextProvider = ({ children }) => {
 
   // ---------------- USER PROFILE ----------------
   const loadUserProfileData = async () => {
+    if (!token) return
+
     try {
       const { data } = await axios.get(
         `${backendUrl}/api/user/get-profile`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`, // ✅ FIXED
           },
         }
       )
@@ -52,6 +54,7 @@ const AppContextProvider = ({ children }) => {
         toast.error(data.message)
         handleInvalidToken()
       }
+
     } catch (err) {
       console.error(err)
       if (err.response?.status === 401) {
