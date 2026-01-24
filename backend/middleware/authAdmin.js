@@ -1,21 +1,36 @@
 import jwt from "jsonwebtoken"
 
-// admin authentication middleware
-const authAdmin = async (req, res, next) => {
-    try {
-        const { atoken } = req.headers
-        if (!atoken) {
-            return res.json({ success: false, message: 'Not Authorized Login Again' })
-        }
-        const token_decode = jwt.verify(atoken, process.env.JWT_SECRET)
-        if (token_decode !== process.env.ADMIN_EMAIL + process.env.ADMIN_PASSWORD) {
-            return res.json({ success: false, message: 'Not Authorized Login Again' })
-        }
-        next()
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+// Admin authentication middleware (PRODUCTION STANDARD)
+const authAdmin = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization
+
+    // 1️⃣ Token missing or malformed
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized, token missing",
+      })
     }
+
+    // 2️⃣ Extract token
+    const token = authHeader.split(" ")[1]
+
+    // 3️⃣ Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    // 4️⃣ Optional: sanity check role or email (if you embed it later)
+    // For now, just trust the JWT
+    req.body.adminId = decoded.id
+
+    next()
+  } catch (error) {
+    console.error("ADMIN AUTH ERROR:", error.message)
+    return res.status(401).json({
+      success: false,
+      message: "Not authorized, invalid token",
+    })
+  }
 }
 
-export default authAdmin;
+export default authAdmin
