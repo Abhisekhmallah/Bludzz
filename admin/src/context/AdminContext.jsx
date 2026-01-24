@@ -1,174 +1,183 @@
-import axios from "axios";
-import { createContext, useState } from "react";
-import { toast } from "react-toastify";
+import axios from "axios"
+import { createContext, useState } from "react"
+import { toast } from "react-toastify"
 
-export const AdminContext = createContext();
+export const AdminContext = createContext()
 
 const AdminContextProvider = (props) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL
 
   const [aToken, setAToken] = useState(
-    localStorage.getItem("aToken") ? localStorage.getItem("aToken") : ""
-  );
+    localStorage.getItem("aToken") || ""
+  )
 
-  const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [labs, setLabs] = useState([]); // NEW STATE FOR LABS
-  const [dashData, setDashData] = useState(false);
+  const [appointments, setAppointments] = useState([])
+  const [doctors, setDoctors] = useState([])
+  const [labs, setLabs] = useState([])
+  const [dashData, setDashData] = useState(false)
 
-  // Getting all Doctors data from Database using API
+  const authHeaders = {
+    headers: {
+      Authorization: `Bearer ${aToken}`,
+    },
+  }
+
+  // ---------------- DOCTORS ----------------
   const getAllDoctors = async () => {
     try {
       const { data } = await axios.get(
-        backendUrl + "/api/admin/all-doctors",
-        { headers: { aToken } }
-      );
+        `${backendUrl}/api/admin/all-doctors`,
+        authHeaders
+      )
       if (data.success) {
-        setDoctors(data.doctors);
+        setDoctors(data.doctors)
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error)
+      toast.error("Failed to load doctors")
     }
-  };
+  }
 
-  // Function to change doctor availability using API
   const changeAvailability = async (docId) => {
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/admin/change-availability",
+        `${backendUrl}/api/admin/change-availability`,
         { docId },
-        { headers: { aToken } }
-      );
+        authHeaders
+      )
       if (data.success) {
-        toast.success(data.message);
-        getAllDoctors();
+        toast.success(data.message)
+        getAllDoctors()
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      console.error(error)
+      toast.error("Failed to update availability")
     }
-  };
+  }
 
-  // 🆕 Getting all Labs data from Database using API
+  // ---------------- LABS ----------------
   const getAllLabs = async () => {
     try {
       const { data } = await axios.get(
-        backendUrl + "/api/admin/all-labs",
-        { headers: { aToken } }
-      );
+        `${backendUrl}/api/admin/all-labs`,
+        authHeaders
+      )
       if (data.success) {
-        setLabs(data.labs);
+        setLabs(data.labs)
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error)
+      toast.error("Failed to load labs")
     }
-  };
+  }
 
-  // 🆕 Function to change lab availability using API
   const changeLabAvailability = async (id) => {
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/admin/change-lab-availability",
+        `${backendUrl}/api/admin/change-lab-availability`,
         { id },
-        { headers: { aToken } }
-      );
+        authHeaders
+      )
       if (data.success) {
-        toast.success(data.message);
-        getAllLabs();
+        toast.success(data.message)
+        getAllLabs()
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      console.error(error)
+      toast.error("Failed to update lab availability")
     }
-  };
+  }
 
-  // Getting all appointment data from Database using API
+  // ---------------- APPOINTMENTS ----------------
   const getAllAppointments = async () => {
     try {
       const { data } = await axios.get(
-        backendUrl + "/api/admin/appointments",
-        { headers: { aToken } }
-      );
+        `${backendUrl}/api/admin/appointments`,
+        authHeaders
+      )
       if (data.success) {
-        setAppointments(data.appointments.reverse());
+        setAppointments(data.appointments.reverse())
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      toast.error(error.message);
-      console.log(error);
+      console.error(error)
+      toast.error("Failed to load appointments")
     }
-  };
+  }
 
-  // Function to cancel appointment using API
   const cancelAppointment = async (appointmentId) => {
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/admin/cancel-appointment",
+        `${backendUrl}/api/admin/cancel-appointment`,
         { appointmentId },
-        { headers: { aToken } }
-      );
+        authHeaders
+      )
 
       if (data.success) {
-        toast.success(data.message);
-        getAllAppointments();
+        toast.success(data.message)
+        getAllAppointments()
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      toast.error(error.message);
-      console.log(error);
+      console.error(error)
+      toast.error("Failed to cancel appointment")
     }
-  };
+  }
 
-  // Getting Admin Dashboard data from Database using API
+  // ---------------- DASHBOARD ----------------
   const getDashData = async () => {
     try {
       const { data } = await axios.get(
-        backendUrl + "/api/admin/dashboard",
-        { headers: { aToken } }
-      );
+        `${backendUrl}/api/admin/dashboard`,
+        authHeaders
+      )
 
       if (data.success) {
-        setDashData(data.dashData);
+        setDashData(data.dashData)
       } else {
-        toast.error(data.message);
+        toast.error(data.message)
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      console.error(error)
+      toast.error("Failed to load dashboard")
     }
-  };
+  }
 
   const value = {
     aToken,
     setAToken,
+
     doctors,
     getAllDoctors,
     changeAvailability,
-    labs,                   // 🆕 Export labs
-    getAllLabs,             // 🆕 Export getAllLabs
-    changeLabAvailability,  // 🆕 Export changeLabAvailability
+
+    labs,
+    getAllLabs,
+    changeLabAvailability,
+
     appointments,
     getAllAppointments,
-    getDashData,
     cancelAppointment,
+
     dashData,
-  };
+    getDashData,
+  }
 
   return (
     <AdminContext.Provider value={value}>
       {props.children}
     </AdminContext.Provider>
-  );
-};
+  )
+}
 
-export default AdminContextProvider;
+export default AdminContextProvider
