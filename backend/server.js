@@ -35,6 +35,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "http://localhost:5174",
       "https://bludzz.vercel.app",
       "https://bludzz-1.onrender.com",
     ],
