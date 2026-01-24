@@ -38,6 +38,9 @@ app.use(
       "http://localhost:5174",
       "https://bludzz.vercel.app",
       "https://bludzz-1.onrender.com",
+      "https://bludz.com",
+      "https://www.bludz.com",
+
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
