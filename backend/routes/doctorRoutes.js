@@ -17,24 +17,20 @@ import {
 
 const doctorRouter = express.Router()
 
-console.log("doctorRoutes.js loaded")
-
 /* =========================
    AUTH
 ========================= */
-
 doctorRouter.post("/login", loginDoctor)
 
 doctorRouter.post(
   "/register-doctor",
-  upload.single("document"),   // 🔥 FILE UPLOAD ENABLED
+  upload.single("document"),
   registerDoctor
 )
 
 /* =========================
    DOCTOR PANEL (Protected)
 ========================= */
-
 doctorRouter.post("/appointments", authDoctor, appointmentsDoctor)
 doctorRouter.post("/cancel-appointment", authDoctor, appointmentCancel)
 doctorRouter.post("/complete-appointment", authDoctor, appointmentComplete)
@@ -46,7 +42,6 @@ doctorRouter.post("/change-availability", authDoctor, changeAvailablity)
 /* =========================
    PUBLIC
 ========================= */
-
 doctorRouter.get("/list", doctorList)
 
 export default doctorRouter

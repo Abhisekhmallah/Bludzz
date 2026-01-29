@@ -1,8 +1,8 @@
 "use client"
 
 import { createContext, useEffect, useState } from "react"
-import { toast } from "react-toastify"
 import axios from "axios"
+import { toast } from "react-toastify"
 
 export const AppContext = createContext()
 
@@ -19,22 +19,23 @@ const AppContextProvider = ({ children }) => {
     console.error("❌ VITE_BACKEND_URL is not defined")
   }
 
-  // ---------------- DOCTORS ----------------
+  // ---------------- DOCTORS (PUBLIC, NO AUTH) ----------------
   const getDoctorsData = async () => {
     try {
-      const { data } = await axios.get(`${backendUrl}/api/doctor/list`)
+      const { data } = await axios.get(
+        `${backendUrl}/api/doctor/list`
+      )
+
       if (data.success) {
         setDoctors(data.doctors)
-      } else {
-        toast.error(data.message)
       }
     } catch (err) {
-      console.error(err)
-      toast.error("Failed to load doctors")
+      console.error("Failed to load doctors", err)
+      // ❌ No toast here — public API should fail silently
     }
   }
 
-  // ---------------- USER PROFILE ----------------
+  // ---------------- USER PROFILE (PROTECTED) ----------------
   const loadUserProfileData = async () => {
     if (!token) return
 
@@ -43,7 +44,7 @@ const AppContextProvider = ({ children }) => {
         `${backendUrl}/api/user/get-profile`,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // ✅ FIXED
+            Authorization: `Bearer ${token}`,
           },
         }
       )
@@ -51,10 +52,8 @@ const AppContextProvider = ({ children }) => {
       if (data.success) {
         setUserData(data.userData)
       } else {
-        toast.error(data.message)
         handleInvalidToken()
       }
-
     } catch (err) {
       console.error(err)
       if (err.response?.status === 401) {

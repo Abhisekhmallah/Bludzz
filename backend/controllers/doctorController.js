@@ -11,8 +11,6 @@ import DoctorRegistration from "../models/DoctorRegistration.js"
 ===================================================== */
 const notifyAdmin = async (doctor) => {
   try {
-    console.log("BREVO DOCTOR PAYLOAD:", doctor.email)
-
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
@@ -38,13 +36,10 @@ const notifyAdmin = async (doctor) => {
           "api-key": process.env.BREVO_API_KEY,
           "Content-Type": "application/json",
         },
-        timeout: 10000,
       }
     )
-
-    console.log("✅ Admin notified via Brevo")
   } catch (err) {
-    console.error("❌ Admin email failed:", err.response?.data || err.message)
+    console.error("Admin email failed:", err.message)
   }
 }
 
@@ -123,7 +118,7 @@ const registerDoctor = async (req, res) => {
 }
 
 /* =========================
-   DOCTOR LOGIN
+   DOCTOR LOGIN (BLOCK REMOVED)
 ========================= */
 const loginDoctor = async (req, res) => {
   try {
@@ -131,7 +126,7 @@ const loginDoctor = async (req, res) => {
 
     const doctor = await doctorModel.findOne({
       email,
-      isActive: true, // 🔒 BLOCK REMOVED DOCTORS
+      isActive: true,
     })
 
     if (!doctor)
@@ -157,138 +152,108 @@ const loginDoctor = async (req, res) => {
    APPOINTMENTS
 ========================= */
 const appointmentsDoctor = async (req, res) => {
-  try {
-    const { docId } = req.body
-    const appointments = await appointmentModel.find({ docId })
-    res.json({ success: true, appointments })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  const { docId } = req.body
+  const appointments = await appointmentModel.find({ docId })
+  res.json({ success: true, appointments })
 }
 
 const appointmentCancel = async (req, res) => {
-  try {
-    const { docId, appointmentId } = req.body
-    const appointment = await appointmentModel.findById(appointmentId)
+  const { docId, appointmentId } = req.body
+  const appointment = await appointmentModel.findById(appointmentId)
 
-    if (appointment && appointment.docId === docId) {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
-        cancelled: true,
-      })
-      return res.json({ success: true, message: "Appointment Cancelled" })
-    }
-
-    res.json({ success: false, message: "Unauthorized action" })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
+  if (appointment && appointment.docId === docId) {
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      cancelled: true,
+    })
+    return res.json({ success: true, message: "Appointment Cancelled" })
   }
+
+  res.json({ success: false, message: "Unauthorized action" })
 }
 
 const appointmentComplete = async (req, res) => {
-  try {
-    const { docId, appointmentId } = req.body
-    const appointment = await appointmentModel.findById(appointmentId)
+  const { docId, appointmentId } = req.body
+  const appointment = await appointmentModel.findById(appointmentId)
 
-    if (appointment && appointment.docId === docId) {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
-        isCompleted: true,
-      })
-      return res.json({ success: true, message: "Appointment Completed" })
-    }
-
-    res.json({ success: false, message: "Unauthorized action" })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
+  if (appointment && appointment.docId === docId) {
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      isCompleted: true,
+    })
+    return res.json({ success: true, message: "Appointment Completed" })
   }
+
+  res.json({ success: false, message: "Unauthorized action" })
 }
 
 /* =========================
-   DOCTOR LIST (🔥 FIXED)
+   PUBLIC DOCTOR LIST (🔥 FIX)
 ========================= */
 const doctorList = async (req, res) => {
-  try {
-    const doctors = await doctorModel
-      .find({ isActive: true }) // ✅ FILTER REMOVED DOCTORS
-      .select("-password -email")
+  const doctors = await doctorModel
+    .find({ isActive: true })
+    .select("-password -email")
 
-    res.json({ success: true, doctors })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  res.json({ success: true, doctors })
 }
 
 /* =========================
    PROFILE & DASHBOARD
 ========================= */
 const changeAvailablity = async (req, res) => {
-  try {
-    const { docId } = req.body
-    const doc = await doctorModel.findById(docId)
-    await doctorModel.findByIdAndUpdate(docId, {
-      available: !doc.available,
-    })
-    res.json({ success: true, message: "Availability Changed" })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  const { docId } = req.body
+  const doc = await doctorModel.findById(docId)
+
+  await doctorModel.findByIdAndUpdate(docId, {
+    available: !doc.available,
+  })
+
+  res.json({ success: true, message: "Availability Changed" })
 }
 
 const doctorProfile = async (req, res) => {
-  try {
-    const { docId } = req.body
-    const profileData = await doctorModel
-      .findById(docId)
-      .select("-password")
-    res.json({ success: true, profileData })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  const { docId } = req.body
+  const profileData = await doctorModel
+    .findById(docId)
+    .select("-password")
+
+  res.json({ success: true, profileData })
 }
 
 const updateDoctorProfile = async (req, res) => {
-  try {
-    const { docId, fees, address, available } = req.body
-    await doctorModel.findByIdAndUpdate(docId, {
-      fees,
-      address,
-      available,
-    })
-    res.json({ success: true, message: "Profile Updated" })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  const { docId, fees, address, available } = req.body
+
+  await doctorModel.findByIdAndUpdate(docId, {
+    fees,
+    address,
+    available,
+  })
+
+  res.json({ success: true, message: "Profile Updated" })
 }
 
 const doctorDashboard = async (req, res) => {
-  try {
-    const { docId } = req.body
-    const appointments = await appointmentModel.find({ docId })
+  const { docId } = req.body
+  const appointments = await appointmentModel.find({ docId })
 
-    let earnings = 0
-    let patients = []
+  let earnings = 0
+  let patients = []
 
-    appointments.forEach((item) => {
-      if (item.isCompleted || item.payment) earnings += item.amount
-      if (!patients.includes(item.userId)) patients.push(item.userId)
-    })
+  appointments.forEach((item) => {
+    if (item.isCompleted || item.payment) earnings += item.amount
+    if (!patients.includes(item.userId)) patients.push(item.userId)
+  })
 
-    res.json({
-      success: true,
-      dashData: {
-        earnings,
-        appointments: appointments.length,
-        patients: patients.length,
-        latestAppointments: appointments.reverse(),
-      },
-    })
-  } catch (err) {
-    res.json({ success: false, message: err.message })
-  }
+  res.json({
+    success: true,
+    dashData: {
+      earnings,
+      appointments: appointments.length,
+      patients: patients.length,
+      latestAppointments: appointments.reverse(),
+    },
+  })
 }
 
-/* =========================
-   EXPORTS
-========================= */
 export {
   registerDoctor,
   loginDoctor,
