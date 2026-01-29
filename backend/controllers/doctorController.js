@@ -49,7 +49,7 @@ const notifyAdmin = async (doctor) => {
 }
 
 /* =========================
-   DOCTOR SELF REGISTRATION (FIXED)
+   DOCTOR SELF REGISTRATION
 ========================= */
 const registerDoctor = async (req, res) => {
   try {
@@ -96,7 +96,6 @@ const registerDoctor = async (req, res) => {
       })
     }
 
-    // ✅ SAVE FIRST (SOURCE OF TRUTH)
     const doctor = await DoctorRegistration.create({
       name,
       email,
@@ -104,17 +103,15 @@ const registerDoctor = async (req, res) => {
       specialization,
       experienceYears,
       clinicAddress,
-      document,        // 🔥 STORE FILE PATH
+      document,
       status: "pending",
     })
 
-    // ✅ RESPOND IMMEDIATELY (FRONTEND SAFE)
     res.status(201).json({
       success: true,
       message: "Doctor registration submitted successfully",
     })
 
-    // 🔥 EMAIL IN BACKGROUND (DOES NOT AFFECT UI)
     setImmediate(() => notifyAdmin(doctor))
   } catch (err) {
     console.error("REGISTER DOCTOR ERROR:", err)
@@ -132,7 +129,11 @@ const loginDoctor = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    const doctor = await doctorModel.findOne({ email })
+    const doctor = await doctorModel.findOne({
+      email,
+      isActive: true, // 🔒 BLOCK REMOVED DOCTORS
+    })
+
     if (!doctor)
       return res.json({ success: false, message: "Invalid credentials" })
 
@@ -202,17 +203,23 @@ const appointmentComplete = async (req, res) => {
 }
 
 /* =========================
-   DOCTOR DATA
+   DOCTOR LIST (🔥 FIXED)
 ========================= */
 const doctorList = async (req, res) => {
   try {
-    const doctors = await doctorModel.find({}).select("-password -email")
+    const doctors = await doctorModel
+      .find({ isActive: true }) // ✅ FILTER REMOVED DOCTORS
+      .select("-password -email")
+
     res.json({ success: true, doctors })
   } catch (err) {
     res.json({ success: false, message: err.message })
   }
 }
 
+/* =========================
+   PROFILE & DASHBOARD
+========================= */
 const changeAvailablity = async (req, res) => {
   try {
     const { docId } = req.body
