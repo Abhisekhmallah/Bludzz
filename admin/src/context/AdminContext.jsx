@@ -22,7 +22,9 @@ const AdminContextProvider = (props) => {
     },
   }
 
-  // ---------------- DOCTORS ----------------
+  /* =========================
+     DOCTORS
+  ========================= */
   const getAllDoctors = async () => {
     try {
       const { data } = await axios.get(
@@ -59,7 +61,30 @@ const AdminContextProvider = (props) => {
     }
   }
 
-  // ---------------- LABS ----------------
+  // ✅ REMOVE DOCTOR (SOFT DELETE)
+  const removeDoctor = async (docId) => {
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/admin/remove-doctor`,
+        { docId },
+        authHeaders
+      )
+
+      if (data.success) {
+        toast.success(data.message)
+        getAllDoctors()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to remove doctor")
+    }
+  }
+
+  /* =========================
+     LABS
+  ========================= */
   const getAllLabs = async () => {
     try {
       const { data } = await axios.get(
@@ -96,7 +121,9 @@ const AdminContextProvider = (props) => {
     }
   }
 
-  // ---------------- APPOINTMENTS ----------------
+  /* =========================
+     APPOINTMENTS
+  ========================= */
   const getAllAppointments = async () => {
     try {
       const { data } = await axios.get(
@@ -134,7 +161,9 @@ const AdminContextProvider = (props) => {
     }
   }
 
-  // ---------------- DASHBOARD ----------------
+  /* =========================
+     DASHBOARD
+  ========================= */
   const getDashData = async () => {
     try {
       const { data } = await axios.get(
@@ -153,6 +182,9 @@ const AdminContextProvider = (props) => {
     }
   }
 
+  /* =========================
+     CONTEXT VALUE
+  ========================= */
   const value = {
     aToken,
     setAToken,
@@ -160,6 +192,7 @@ const AdminContextProvider = (props) => {
     doctors,
     getAllDoctors,
     changeAvailability,
+    removeDoctor, // ✅ ADDED
 
     labs,
     getAllLabs,
