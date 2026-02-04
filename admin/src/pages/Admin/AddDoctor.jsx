@@ -1,12 +1,16 @@
 import React, { useContext, useState } from "react"
-import { assets } from "../../assets/assets"
-import { toast } from "react-toastify"
 import axios from "axios"
+import { toast } from "react-toastify"
 import { AdminContext } from "../../context/AdminContext"
 import { AppContext } from "../../context/AppContext"
+import { assets } from "../../assets/assets"
 
 const AddDoctor = () => {
-  const [docImg, setDocImg] = useState(false)
+  const { backendUrl } = useContext(AppContext)
+  const { aToken } = useContext(AdminContext)
+
+  const [docImg, setDocImg] = useState(null)
+
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -23,8 +27,7 @@ const AddDoctor = () => {
     { name: "", description: "", fee: "" },
   ])
 
-  const { backendUrl } = useContext(AppContext)
-  const { aToken } = useContext(AdminContext)
+  /* ---------------- SERVICES ---------------- */
 
   const addService = () => {
     setServices([...services, { name: "", description: "", fee: "" }])
@@ -34,21 +37,25 @@ const AddDoctor = () => {
     setServices(services.filter((_, i) => i !== index))
   }
 
-  const handleServiceChange = (index, field, value) => {
+  const updateService = (index, field, value) => {
     const updated = [...services]
     updated[index][field] = value
     setServices(updated)
   }
 
+  /* ---------------- SUBMIT ---------------- */
+
   const onSubmitHandler = async (e) => {
     e.preventDefault()
 
-    if (!docImg) {
-      return toast.error("Doctor image is required")
+    if (!docImg) return toast.error("Doctor image required")
+    if (!name || !email || !password || !fees || !degree || !address1) {
+      return toast.error("Please fill all required fields")
     }
 
     try {
       const formData = new FormData()
+
       formData.append("image", docImg)
       formData.append("name", name)
       formData.append("email", email)
@@ -70,7 +77,7 @@ const AddDoctor = () => {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${aToken}`, // ✅ FIXED
+            Authorization: `Bearer ${aToken}`,
           },
         }
       )
@@ -78,8 +85,8 @@ const AddDoctor = () => {
       if (data.success) {
         toast.success(data.message)
 
-        // reset form
-        setDocImg(false)
+        // reset
+        setDocImg(null)
         setName("")
         setEmail("")
         setPassword("")
@@ -101,36 +108,112 @@ const AddDoctor = () => {
     }
   }
 
-  return (
-    <form onSubmit={onSubmitHandler} className="m-5 w-full">
-      <p className="mb-3 text-lg font-medium">Add Doctor</p>
+  /* ---------------- UI ---------------- */
 
-      <div className="bg-white px-8 py-8 border rounded w-full max-w-4xl max-h-[80vh] overflow-y-scroll">
-        <div className="flex items-center gap-4 mb-8 text-gray-500">
-          <label htmlFor="doc-img">
+  return (
+    <form onSubmit={onSubmitHandler} className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-6">Add Doctor</h1>
+
+      <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-8">
+
+        {/* IMAGE */}
+        <div className="flex items-center gap-5">
+          <label htmlFor="doc-img" className="cursor-pointer">
             <img
-              className="w-16 bg-gray-100 rounded-full cursor-pointer"
               src={docImg ? URL.createObjectURL(docImg) : assets.upload_area}
+              className="w-20 h-20 rounded-full border object-cover"
               alt=""
             />
           </label>
           <input
-            type="file"
             id="doc-img"
+            type="file"
             hidden
             onChange={(e) => setDocImg(e.target.files[0])}
           />
-          <p>
-            Upload doctor <br /> picture
-          </p>
+          <div>
+            <p className="font-medium">Doctor photo</p>
+            <p className="text-sm text-gray-500">JPG / PNG</p>
+          </div>
         </div>
 
-        {/* --- FORM CONTENT UNCHANGED --- */}
+        {/* BASIC INFO */}
+        <section>
+          <h2 className="font-semibold mb-3">Basic Information</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Full name" />
+            <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
+            <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
+            <input className="input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone (+91…)" />
+          </div>
+        </section>
 
-        <button
-          type="submit"
-          className="bg-primary px-10 py-3 mt-6 text-white rounded-full"
-        >
+        {/* PROFESSIONAL */}
+        <section>
+          <h2 className="font-semibold mb-3">Professional Details</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <select className="input" value={speciality} onChange={e => setSpeciality(e.target.value)}>
+              <option>General physician</option>
+              <option>Gynecologist</option>
+              <option>Dermatologist</option>
+              <option>Neurologist</option>
+              <option>Gastroenterologist</option>
+            </select>
+
+            <input className="input" value={degree} onChange={e => setDegree(e.target.value)} placeholder="Degree" />
+            <select className="input" value={experience} onChange={e => setExperience(e.target.value)}>
+              <option>1 Year</option>
+              <option>2 Years</option>
+              <option>3 Years</option>
+              <option>5 Years</option>
+              <option>10 Years</option>
+            </select>
+
+            <input className="input md:col-span-3" type="number" value={fees} onChange={e => setFees(e.target.value)} placeholder="Consultation fee (₹)" />
+          </div>
+        </section>
+
+        {/* ABOUT */}
+        <section>
+          <h2 className="font-semibold mb-3">About Doctor</h2>
+          <textarea className="input h-28" value={about} onChange={e => setAbout(e.target.value)} />
+        </section>
+
+        {/* ADDRESS */}
+        <section>
+          <h2 className="font-semibold mb-3">Clinic Address</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <input className="input" value={address1} onChange={e => setAddress1(e.target.value)} placeholder="Address line 1" />
+            <input className="input" value={address2} onChange={e => setAddress2(e.target.value)} placeholder="Address line 2" />
+          </div>
+        </section>
+
+        {/* SERVICES */}
+        <section>
+          <h2 className="font-semibold mb-3">Services</h2>
+
+          {services.map((s, i) => (
+            <div key={i} className="border rounded-xl p-4 mb-3 bg-gray-50">
+              <div className="grid md:grid-cols-3 gap-3">
+                <input className="input" placeholder="Service name" value={s.name} onChange={e => updateService(i, "name", e.target.value)} />
+                <input className="input" type="number" placeholder="Fee" value={s.fee} onChange={e => updateService(i, "fee", e.target.value)} />
+                <textarea className="input md:col-span-3" placeholder="Description" value={s.description} onChange={e => updateService(i, "description", e.target.value)} />
+              </div>
+
+              {services.length > 1 && (
+                <button type="button" onClick={() => removeService(i)} className="text-red-500 text-sm mt-2">
+                  Remove service
+                </button>
+              )}
+            </div>
+          ))}
+
+          <button type="button" onClick={addService} className="text-primary font-medium">
+            + Add another service
+          </button>
+        </section>
+
+        <button type="submit" className="bg-primary text-white px-10 py-3 rounded-full text-lg">
           Add Doctor
         </button>
       </div>
