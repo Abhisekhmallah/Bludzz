@@ -40,6 +40,7 @@ app.use(
       "https://bludzz-1.onrender.com",
       "https://bludz.com",
       "https://www.bludz.com",
+      "https://bludz-adminpanel.vercel.app",
 
     ],
     credentials: true,
