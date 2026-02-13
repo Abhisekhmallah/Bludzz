@@ -1,5 +1,5 @@
-import express from "express"
 import cors from "cors"
+import express from "express"
 import "dotenv/config"
 
 import connectDB from "./config/mongodb.js"
@@ -29,23 +29,39 @@ const startServices = async () => {
 }
 
 /* =========================
-   CORS CONFIG (PRODUCTION SAFE)
+   CORS CONFIG (FIXED)
 ========================= */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+
+  "https://bludzz.vercel.app",
+  "https://bludzz-1.onrender.com",
+  "https://bludz.com",
+  "https://www.bludz.com",
+  "https://bludz-adminpanel.vercel.app",
+]
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "https://bludzz.vercel.app",
-      "https://bludzz-1.onrender.com",
-      "https://bludz.com",
-      "https://www.bludz.com",
-      "https://bludz-adminpanel.vercel.app",
+    origin: function (origin, callback) {
+      // Allow Postman / server-to-server requests (no origin)
+      if (!origin) return callback(null, true)
 
-    ],
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      } else {
+        console.log("❌ Blocked by CORS:", origin)
+        return callback(new Error("Not allowed by CORS"))
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    // IMPORTANT: Add token header support
+    allowedHeaders: ["Content-Type", "Authorization", "token"],
   })
 )
 
@@ -85,6 +101,24 @@ app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
+  })
+})
+
+/* =========================
+   ERROR HANDLER (IMPORTANT)
+========================= */
+app.use((err, req, res, next) => {
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      success: false,
+      message: "CORS blocked: Origin not allowed",
+    })
+  }
+
+  console.error("❌ Server error:", err)
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
   })
 })
 
